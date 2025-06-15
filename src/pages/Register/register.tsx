@@ -1,26 +1,43 @@
 import React, { useState } from 'react';
 import { UserFormData, FormErrors } from '../../interfaces/Register/Register.interface';
-
 const Register: React.FC = () => {
   const [errors, setErrors] = useState<FormErrors | null>(null);
+
+  const validateEmail = (email: string): boolean => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
 
   const handleSignUp = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const payload = Object.fromEntries(formData.entries()) as unknown as UserFormData;
+    
+    // Conversión explícita de los valores
+    const payload: UserFormData = {
+      cedula: Number(formData.get('cedula')),
+      name: formData.get('name') as string,
+      surname: formData.get('surname') as string,
+      email: formData.get('email') as string,
+      password: formData.get('password') as string,
+      repeatPassword: formData.get('repeatPassword') as string
+    };
     
     // Validaciones
     const newErrors: FormErrors = {};
     
-    if (!payload.name.trim()) {
+    if (isNaN(payload.cedula)) {
+      newErrors.isCedulaInvalid = true;
+    }
+    
+    if (!payload.name?.trim()) {
       newErrors.isNameInvalid = true;
     }
     
-    if (!validateEmail(payload.email)) {
+    if (!payload.email || !validateEmail(payload.email)) {
       newErrors.isInvalidEmail = true;
     }
 
-    if (payload.password.length < 8) {
+    if (!payload.password || payload.password.length < 8) {
       newErrors.isPasswordTooShort = true;
     } else if (!/[A-Z]/.test(payload.password) || 
                !/[0-9]/.test(payload.password) || 
@@ -37,10 +54,9 @@ const Register: React.FC = () => {
       return;
     }
 
-    // Si no hay errores
     setErrors(null);
     console.log('Form data:', payload);
-    // Aquí iría tu lógica de envío del formulario
+    // Lógica de envío del formulario
   };
 
   return (
@@ -50,20 +66,27 @@ const Register: React.FC = () => {
       noValidate
     >
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Crea una cuenta de Usuario</h2>
-       <div className="mb-4">
+      
+      <div className="mb-4">
         <label htmlFor="cedula" className="block text-gray-700 mb-2">Cédula*</label>
         <input 
           required 
-          
-          type="text" 
-          id="name" 
-          name="name" 
-          className={`w-full px-3 py-2 border ${errors?.isNameInvalid ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500`} 
+          type="number" 
+          id="cedula" 
+          name="cedula" 
+          className={`w-full px-3 py-2 border ${errors?.isCedulaInvalid ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500`}
+          onKeyDown={(e) => {
+            if (!/[0-9]|Backspace|Tab|ArrowLeft|ArrowRight/.test(e.key)) {
+              e.preventDefault();
+            }
+          }}
         />
-        {errors?.isNameInvalid && (
-          <p className="mt-1 text-sm text-red-600">Por favor ingresa tu nombre</p>
+        {errors?.isCedulaInvalid && (
+          <p className="mt-1 text-sm text-red-600">Por favor ingresa un número válido</p>
         )}
       </div>
+      
+      {/* Resto del formulario permanece igual */}
       <div className="mb-4">
         <label htmlFor="name" className="block text-gray-700 mb-2">Nombre *</label>
         <input 

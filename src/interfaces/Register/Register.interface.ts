@@ -1,15 +1,17 @@
 export interface UserFormData {
+  cedula: number;
   name: string;
-  surname?: string; // Hice surname opcional
+  surname?: string;
   email: string;
   password: string;
   repeatPassword: string;
 }
 
-export type FormErrors = Partial<{
-  isRepeatPasswordNotEqual: boolean;
-  isPasswordTooShort: boolean;
-  isInvalidEmail: boolean;
-  isNameInvalid: boolean;
-  isWeakPassword: boolean;
-}>;
+export interface FormErrors {
+  isRepeatPasswordNotEqual?: boolean;
+  isPasswordTooShort?: boolean;
+  isInvalidEmail?: boolean;
+  isNameInvalid?: boolean;
+  isWeakPassword?: boolean;
+  isCedulaInvalid?: boolean;
+}
