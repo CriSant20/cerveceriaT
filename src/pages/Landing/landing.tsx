@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import cervezaBackground from "../../assets/img/headerkikinsecurity.jpg"; // Ajusta la ruta según tu estructura
 import cervezaimg from "../../assets/img/cerveza.jpeg"; // Ajusta la ruta según tu estructura
