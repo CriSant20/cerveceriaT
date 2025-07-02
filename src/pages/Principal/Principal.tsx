@@ -2,7 +2,6 @@ import { Outlet, Link } from "react-router-dom";
 import {Sidebar} from "../../components/sidebar/sidebar";
 import {
   FiHome,
-  FiUser,
   FiDownloadCloud,
   FiMenu,
   FiX,
@@ -64,20 +63,19 @@ const Principal = () => {
           {isMenuOpen && <span>Inicio</span>}
         </Link>
         <Link
-          to="/app/documentos"
+          to="/app/inventario"
           className="flex items-center gap-4 px-4 py-2 hover:bg-blue-800 transition-colors"
         >
           <FiDownloadCloud size={20} />
           {isMenuOpen && <span>Inventario</span>}
         </Link>
-
-        {/* Gestión de usuarios */}
-        <div className="px-4">
-          <div className="flex items-center gap-4 py-2 text-sm text-gray-400">
-            <FiUser size={20} />
-            {isMenuOpen && <span>Recetas</span>}
-          </div>
-        </div>
+           <Link
+          to="/app/recetas"
+          className="flex items-center gap-4 px-4 py-2 hover:bg-blue-800 transition-colors"
+        >
+          <FiDownloadCloud size={20} />
+          {isMenuOpen && <span>Recetas</span>}
+        </Link>
       </Sidebar>
 
       {/* Contenido principal */}

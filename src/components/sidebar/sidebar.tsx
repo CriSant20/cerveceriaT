@@ -21,7 +21,7 @@ export function Sidebar({
               isMenuOpen ? "opacity-100" : "opacity-0 overflow-hidden w-0"
             }`}
           >
-            KikinSecurity
+            CERVECERIA NEFER
           </span>
           <button
             onClick={toggleMenu}
@@ -37,7 +37,7 @@ export function Sidebar({
               isMenuOpen ? "opacity-100" : "opacity-0 overflow-hidden w-0"
             }`}
           >
-            Seguridad y Documentos
+            Adinistración Cerveceria
           </span>
         </div>
         {/* Contenido (íconos de navegación) */}

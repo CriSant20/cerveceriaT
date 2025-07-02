@@ -1,5 +1,5 @@
 import React from "react";
-import logoUTA from "../../assets/img/logoUTA.png";
+import logo from "../../assets/img/cerveza.jpeg";
 import headerBackground from "../../assets/img/headerkikinsecurity.jpg";
 
 const Header: React.FC = () => {
@@ -15,14 +15,14 @@ const Header: React.FC = () => {
     >
       <div className="w-full mx-auto flex items-center px-4 md:px-8 lg:px-12 z-10">
         <img 
-          src={logoUTA}
-          alt="Logo UTA"
+          src={logo}
+          alt="Logo"
           className="h-16 md:h-20 lg:h-24 mr-4"
         />
         
         <div>
-          <h1 className="text-xm md:text-2xl lg:text-3xl font-bold">KikinSecurity</h1>
-          <p className="text-xm md:text-lg lg:text-xl">Seguridad</p>
+          <h1 className="text-xm md:text-2xl lg:text-3xl font-bold">CERVECERIA</h1>
+          <p className="text-xm md:text-lg lg:text-xl">NEFER</p>
         </div>
       </div>
     </header>
