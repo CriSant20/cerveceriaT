@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Header from "./components/header/Header";
 import Footer from "./components/footer/Footer";
 import Login from './pages/Login/login';
-import Register from './pages/Register/register';
 import Home from './pages/Home/home';
 import Principal from './pages/Principal/Principal';
 import Landing from './pages/Landing/landing';
@@ -20,7 +19,6 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/registro" element={<Register />} />
 
             {/* Rutas protegidas (requieren autenticación) */}
             <Route 
