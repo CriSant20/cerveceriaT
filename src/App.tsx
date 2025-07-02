@@ -7,38 +7,50 @@ import Principal from './pages/Principal/Principal';
 import Landing from './pages/Landing/landing';
 import Inventario from './pages/Inventario/inventario';
 import Recetas from './pages/recetas/recetas';
+
 const App = () => {
-  // Ejemplo: Puedes reemplazar esto con tu lógica real de autenticación
   const isAuthenticated = true; // Cambiar según el estado de autenticación
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
-      <main className="flex-grow">
-        <Router>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-
-            {/* Rutas protegidas (requieren autenticación) */}
-            <Route 
-              path="/app" 
-              element={isAuthenticated ? <Principal /> : <Navigate to="/login" />}
-            >
-              {/* Ruta por defecto dentro del layout Principal */}
-              <Route index element={<Navigate to="home" replace />} />
-              <Route path="inventario" element={<Inventario />} />
-              <Route path="home" element={<Home />} />
-              <Route path="recetas" element={<Recetas/>} />
-            </Route>
-
-            {/* Redirección para rutas no existentes */}
-            <Route path="*" element={<Navigate to={isAuthenticated ? "/app/home" : "/"} />} />
-          </Routes>
-        </Router>
-      </main>
-      <Footer />
-    </div>
+    <Router>
+      <Routes>
+        {/* Ruta de Landing sin Header y Footer */}
+        <Route path="/" element={
+          <div className="flex flex-col min-h-screen">
+            <main className="flex-grow">
+              <Landing />
+            </main>
+          </div>
+        } />
+        
+        {/* Otras rutas con Header y Footer */}
+        <Route path="*" element={
+          <div className="flex flex-col min-h-screen">
+            <Header />
+            <main className="flex-grow">
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                
+                {/* Rutas protegidas (requieren autenticación) */}
+                <Route 
+                  path="/app" 
+                  element={isAuthenticated ? <Principal /> : <Navigate to="/login" />}
+                >
+                  <Route index element={<Navigate to="home" replace />} />
+                  <Route path="inventario" element={<Inventario />} />
+                  <Route path="home" element={<Home />} />
+                  <Route path="recetas" element={<Recetas />} />
+                </Route>
+                
+                {/* Redirección para rutas no existentes */}
+                <Route path="*" element={<Navigate to={isAuthenticated ? "/app/home" : "/"} />} />
+              </Routes>
+            </main>
+            <Footer />
+          </div>
+        } />
+      </Routes>
+    </Router>
   );
 };
 

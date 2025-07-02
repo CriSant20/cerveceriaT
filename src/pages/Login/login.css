@@ -1,23 +1,31 @@
-/* Contenedor principal */
 .contenedorPrincipal {
   height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f0f4f8; /* Fondo más suave */
+  background: 
+    url('../../assets/img/bglogin.jpg') center/cover no-repeat;
+  /* Fondo con overlay azul marino semitransparente sobre imagen */
 }
 
+/* Versión alternativa con menos opacidad */
+.contenedorPrincipal.alternative {
+  background: 
+    linear-gradient(rgba(26, 35, 126, 0.7), rgba(39, 49, 171, 0.7)),
+    url('../../assets/img/headerkikinsecurity.jpg') center/cover no-repeat;
+}
 /* Contenedor del login */
 .contenedorLoguin {
   width: 90%;
   max-width: 1200px;
-  background-color: #ffffff;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); /* Sombra más suave */
+  background-color: rgba(45, 55, 72, 0.9); /* Fondo oscuro semitransparente */
+  box-shadow: 0 8px 30px rgba(219, 219, 219, 0.3);
   border-radius: 12px;
   display: flex;
   flex-direction: row;
   overflow: hidden;
   transition: all 0.3s ease;
+  border: 1px solid rgba(180, 83, 9, 0.3); /* Borde ámbar sutil */
 }
 
 /* Ajustes para la imagen de portada */
@@ -26,20 +34,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #e8f7f3; /* Fondo sutil y relajante */
+  background: linear-gradient(to bottom right, #180c04, #3e2723); /* Degradado marrón oscuro */
   padding: 20px;
 }
 
 .porta {
   height: 70vh;
   width: 90%;
-  background-color: #dcdcdc;
-  background-image: url("../../assets/img/logoUTA.png");
+  background-color: transparent;
+  background-image: url("../../assets/img/cerveza.jpeg"); /* Imagen de cerveza */
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
   transition: all 0.3s ease;
-  border-radius: 10px; /* Bordes más suaves */
+  border-radius: 10px;
 }
 
 /* Contenedor del formulario */
@@ -50,7 +58,7 @@
   flex-direction: column;
   justify-content: center;
   font-family: "Raleway", sans-serif;
-  color: #333333; /* Texto más oscuro para mejor legibilidad */
+  color: #f3f4f6; /* Texto claro */
 }
 
 /* Encabezado */
@@ -64,7 +72,7 @@
   align-items: center;
   text-align: center;
   margin-bottom: 25px;
-  color: #224766; /* Color verde turquesa más vibrante */
+  color: #f59e0b; /* Color ámbar */
 }
 
 .encabezadoLoguin img {
@@ -80,7 +88,7 @@
 }
 
 .formularioLoguin form div {
-  margin-bottom: 25px; /* Espacio entre campos más amplio */
+  margin-bottom: 25px;
 }
 
 /* Contenedor del campo de contraseña */
@@ -93,18 +101,19 @@
 .formularioLoguin form input {
   width: 100%;
   padding: 12px 18px;
-  border: 1px solid #d1d1d1;
-  border-radius: 8px; /* Bordes más redondeados */
-  font-size: 18px; /* Mayor tamaño de fuente */
+  border: 1px solid rgba(180, 83, 9, 0.5);
+  border-radius: 8px;
+  font-size: 18px;
   outline: none;
   transition: all 0.3s ease;
-  background-color: #f8f9fa; /* Fondo suave y ligero */
+  background-color: rgba(31, 41, 55, 0.7);
+  color: #f3f4f6;
 }
 
 .formularioLoguin form input:focus {
-  border-color: #16a085; /* Borde verde vibrante */
-  box-shadow: 0 0 8px rgba(22, 160, 133, 0.3);
-  background-color: #ffffff; /* Fondo blanco cuando está enfocado */
+  border-color: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+  background-color: rgba(31, 41, 55, 0.9);
 }
 
 /* Icono de visibilidad de contraseña */
@@ -115,20 +124,20 @@
   transform: translateY(-50%);
   font-size: 20px;
   cursor: pointer;
-  color: #6c757d;
+  color: #f59e0b;
 }
 
 /* Enlace de recuperación de contraseña */
 .formularioLoguin form p {
   text-align: right;
   font-size: 14px;
-  color: #6c757d;
+  color: #d1d5db;
   transition: all 0.3s ease;
   cursor: pointer;
 }
 
 .formularioLoguin form p:hover {
-  color: #16a085; /* Cambio de color en hover */
+  color: #f59e0b;
   transform: scale(1.05);
 }
 
@@ -136,18 +145,20 @@
 .botonAzul {
   width: 100%;
   padding: 12px 18px;
-  background-color: #224766; /* Fondo verde vibrante */
-  color: #ffffff;
+  background: linear-gradient(to right, #b45309, #d97706); /* Degradado ámbar */
+  color: #1f2937;
   border: none;
   border-radius: 8px;
   font-size: 18px;
   font-weight: bold;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
-.botonVerde:hover {
-  background-color: #1abc9c; /* Fondo más oscuro en hover */
+.botonAzul:hover {
+  background: linear-gradient(to right, #d97706, #f59e0b);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
 }
 
 /* Estilo para la opción de registrarse */
@@ -156,7 +167,7 @@
   justify-content: flex-end;
   gap: 5px;
   font-size: 14px;
-  color: #6c757d;
+  color: #d1d5db;
 }
 
 .registrate .palabra {
@@ -165,7 +176,7 @@
 }
 
 .registrate .palabra:hover {
-  color: #16a085; /* Cambio de color en hover */
+  color: #f59e0b;
   transform: scale(1.1);
 }
 

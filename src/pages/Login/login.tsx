@@ -20,8 +20,8 @@ const Login: React.FC = () => {
     e.preventDefault();
 
     // Correo y contraseña estáticos
-    const correoEstatico = "kikin@gmail.com";
-    const contraseniaEstatica = "admin123";
+    const correoEstatico = "jessica@gmail.com";
+    const contraseniaEstatica = "administradora";
 
     if (!correo || !contrasenia) {
       toast.error("Por favor, completa todos los campos.");
