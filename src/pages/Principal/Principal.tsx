@@ -3,9 +3,6 @@ import {Sidebar} from "../../components/sidebar/sidebar";
 import {
   FiHome,
   FiUser,
-  FiSettings,
-  FiMail,
-  FiCalendar,
   FiDownloadCloud,
   FiMenu,
   FiX,
@@ -55,7 +52,7 @@ const Principal = () => {
         toggleMenu={toggleMenu}
         footerContent={
           <div className="text-sm text-gray-300 text-center">
-            &copy; 2025 KikinSecurity
+            &copy; 2025 CERVECERIA NEFER
           </div>
         }
       >
@@ -71,47 +68,16 @@ const Principal = () => {
           className="flex items-center gap-4 px-4 py-2 hover:bg-blue-800 transition-colors"
         >
           <FiDownloadCloud size={20} />
-          {isMenuOpen && <span>Documentos</span>}
+          {isMenuOpen && <span>Inventario</span>}
         </Link>
 
         {/* Gestión de usuarios */}
         <div className="px-4">
           <div className="flex items-center gap-4 py-2 text-sm text-gray-400">
             <FiUser size={20} />
-            {isMenuOpen && <span>Gestión Usuarios</span>}
-          </div>
-          <div className="ml-6">
-            <Link
-              to="/app/usuarios"
-              className="flex items-center gap-3 py-1 hover:text-white text-sm"
-            >
-              <FiUser size={16} />
-              {isMenuOpen && <span>Usuarios</span>}
-            </Link>
-            <Link
-              to="/app/permisos"
-              className="flex items-center gap-3 py-1 hover:text-white text-sm"
-            >
-              <FiSettings size={16} />
-              {isMenuOpen && <span>Permisos</span>}
-            </Link>
+            {isMenuOpen && <span>Recetas</span>}
           </div>
         </div>
-
-        <Link
-          to="/app/mensajes"
-          className="flex items-center gap-4 px-4 py-2 hover:bg-blue-800 transition-colors"
-        >
-          <FiMail size={20} />
-          {isMenuOpen && <span>Mensajes</span>}
-        </Link>
-        <Link
-          to="/app/calendario"
-          className="flex items-center gap-4 px-4 py-2 hover:bg-blue-800 transition-colors"
-        >
-          <FiCalendar size={20} />
-          {isMenuOpen && <span>Calendario</span>}
-        </Link>
       </Sidebar>
 
       {/* Contenido principal */}

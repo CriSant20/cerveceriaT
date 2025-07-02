@@ -5,8 +5,7 @@ import Login from './pages/Login/login';
 import Register from './pages/Register/register';
 import Home from './pages/Home/home';
 import Principal from './pages/Principal/Principal';
-import Documentos from './pages/Gestion-Documentos/documentos';
-
+import Landing from './pages/Landing/landing';
 const App = () => {
   // Ejemplo: Puedes reemplazar esto con tu lógica real de autenticación
   const isAuthenticated = true; // Cambiar según el estado de autenticación
@@ -18,7 +17,7 @@ const App = () => {
         <Router>
           <Routes>
             {/* Rutas públicas */}
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/registro" element={<Register />} />
 
@@ -31,7 +30,6 @@ const App = () => {
               <Route index element={<Navigate to="inicio" replace />} />
               
               <Route path="inicio" element={<h1>Página de Inicio</h1>} />
-              <Route path="documentos" element={<Documentos />} />
               <Route path="home" element={<Home />} />
             </Route>
 

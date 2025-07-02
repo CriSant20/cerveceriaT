@@ -50,7 +50,7 @@ const Login: React.FC = () => {
           </div>
           <div className="contenedorFormularioLoguin">
             <div className="encabezadoLoguin">
-              <h1>Bienvenidos a KikinSecurity</h1>
+              <h1>Bienvenidos a CERVECERIA NEFER</h1>
             </div>
             <div className="formularioLoguin">
               <form onSubmit={handleSubmit}>
