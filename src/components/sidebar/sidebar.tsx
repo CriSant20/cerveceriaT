@@ -5,7 +5,6 @@ export function Sidebar({
   isMenuOpen,
   toggleMenu,
   children,
-  footerContent,
 }: SidebarProps) {
   return (
     <aside
