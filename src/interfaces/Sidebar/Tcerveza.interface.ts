@@ -4,10 +4,14 @@ export interface Receta {
   maltas: Ingrediente[];
   lupulos: Ingrediente[];
   levaduras: Ingrediente[];
-  estilo?: string;    // Made optional
-  ibu?: number;       // Made optional
-  abv?: number;       // Made optional
-  volumen?: number;   // Made optional
+  // Existing properties
+  estilo?: string;
+  ibu?: number;
+  abv?: number;
+  volumen?: number;
+  // New properties
+  instrucciones?: string;    // Make optional if not all recipes have it
+  descripcion?: string;      // Make optional if not all recipes have it
 }
 
 interface Ingrediente {
