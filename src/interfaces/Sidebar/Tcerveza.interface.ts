@@ -1,19 +1,16 @@
-// En tu archivo de interfaces (Tcerveza.interface.ts)
 export interface Receta {
   id: number;
   nombre: string;
-  estilo: string;
-  descripcion?: string;
-  instrucciones?: string;
-  ibu: number;
-  abv: number;
-  volumen: number;
   maltas: Ingrediente[];
   lupulos: Ingrediente[];
   levaduras: Ingrediente[];
+  estilo?: string;    // Made optional
+  ibu?: number;       // Made optional
+  abv?: number;       // Made optional
+  volumen?: number;   // Made optional
 }
 
-export interface Ingrediente {
+interface Ingrediente {
   nombre: string;
   cantidad: number;
 }
