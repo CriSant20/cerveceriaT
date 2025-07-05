@@ -1,58 +1,64 @@
-import { Receta } from "../../interfaces/Sidebar/Tcerveza.interface"
+import { useEffect, useState } from "react";
+import axios from "axios";
+const API_URL = import.meta.env.VITE_API_URL;
 
-export const recetas: Receta[] = [
-  {
-    id: 1,
-    nombre: "Abadía Ámbar",
-    maltas: [
-      { nombre: "Pilsen", cantidad: 67.5 },
-      { nombre: "Munich", cantidad: 33.5 },
-      { nombre: "Abbey", cantidad: 6.5 },
-      { nombre: "Cara Ruby", cantidad: 4.5 },
-    ],
-    lupulos: [
-      { nombre: "Saaz", cantidad: 0.9 },
-      { nombre: "Hallertauer Mittelfruh", cantidad: 0.7 },
-    ],
-    levaduras: [
-      { nombre: "Safale S-33", cantidad: 0.4 },
-    ]
-  },
-  {
-    id: 2,
-    nombre: "Triple Blond",
-    maltas: [
-      { nombre: "Pilsen", cantidad: 120 },
-      { nombre: "Cara Blond", cantidad: 15 },
-      { nombre: "Cara Clair", cantidad: 7.5 },
-      { nombre: "Wheat Blanc", cantidad: 7.5 },
-    ],
-    lupulos: [
-      { nombre: "Perle", cantidad: 0.4 },
-      { nombre: "Polaris", cantidad: 0.18 },
-      { nombre: "Cascade", cantidad: 0.5 },
-      { nombre: "Mosaico", cantidad: 0.4 },
-    ],
-    levaduras: [
-      { nombre: "Safale", cantidad: 0.35 },
-      { nombre: "BE-256", cantidad: 0.35 },
-    ]
-  },
-  {
-    id: 3,
-    nombre: "Cerveza Scotch",
-    maltas: [
-      { nombre: "Pilsen", cantidad: 59.5 },
-      { nombre: "Cebada tostada", cantidad: 1.5 },
-      { nombre: "Wheat Blanc", cantidad: 5 },
-      { nombre: "Peated", cantidad: 4 },
-    ],
-    lupulos: [
-      { nombre: "Golding", cantidad: 0.5 },
-      { nombre: "Fuggle", cantidad: 0.5 },
-    ],
-    levaduras: [
-      { nombre: "Safale S-33", cantidad: 0.35 },
-    ]
-  }
-]
+type Ingrediente = {
+  nombre: string;
+  cantidad: number;
+};
+
+type Receta = {
+  id: number;
+  nombre: string;
+  maltas: Ingrediente[];
+  lupulos: Ingrediente[];
+  levaduras: Ingrediente[];
+};
+
+const [recetas, setRecetas] = useState<Receta[]>([]);
+
+useEffect(() => {
+  const fetchRecetas = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/recetas-con-ingredientes/`);
+      const data = response.data;
+    console.log("RECETAS API:", data);
+      const mapped: Receta[] = data.map((receta: any) => {
+        const tipos = receta.tipos || [];
+
+        const ingredientesPorTipo: {
+          maltas: Ingrediente[];
+          lupulos: Ingrediente[];
+          levaduras: Ingrediente[];
+        } = {
+          maltas: [],
+          lupulos: [],
+          levaduras: [],
+        };
+
+        tipos.forEach((tipo: any) => {
+          const key = tipo.nombre_tipo.toLowerCase();
+          if (key === "maltas" || key === "lúpulos" || key === "levaduras") {
+            const tipoKey: "maltas" | "lupulos" | "levaduras" = key === "lúpulos" ? "lupulos" : key;
+            ingredientesPorTipo[tipoKey] = tipo.ingredientes.map((ing: any) => ({
+              nombre: ing.nombre_ingrediente,
+              cantidad: ing.stock,
+            }));
+          }
+        });
+
+        return {
+          id: receta.id,
+          nombre: receta.nombre,
+          ...ingredientesPorTipo,
+        };
+      });
+
+      setRecetas(mapped);
+    } catch (error) {
+      console.error("Error al cargar recetas:", error);
+    }
+  };
+
+  fetchRecetas();
+}, []);

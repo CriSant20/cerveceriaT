@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { recetas } from "./recetas";
+import { useState, useEffect } from "react";
+import axios from "axios";
+const API_URL = import.meta.env.VITE_API_URL;
 import { Receta } from "../../interfaces/Sidebar/Tcerveza.interface";
 import { SeccionIngredientes } from "../../components/Recetas/SeccionIngredientes";
 import { ConfirmModal } from "../../components/Recetas/ConfirmModal";
@@ -9,33 +10,16 @@ import { FaBeer } from "react-icons/fa";
 
 // Definición de tipos
 type Stock = Record<string, number>;
-
+type Ingrediente = {
+  nombre: string;
+  cantidad: number;
+};
 export default function Recetas() {
   const [recetaSeleccionada, setRecetaSeleccionada] = useState<Receta | null>(
     null
   );
-  const [stock, setStock] = useState<Stock>({
-    Pilsen: 100,
-    Munich: 20,
-    Abbey: 10,
-    "Cara Ruby": 5,
-    "Cara Blond": 15,
-    "Cara Clair": 8,
-    "Wheat Blanc": 10,
-    Peated: 5,
-    "Cebada tostada": 2,
-    Saaz: 0.8,
-    "Hallertauer Mittelfruh": 1,
-    Perle: 1,
-    Polaris: 0.5,
-    Cascade: 1,
-    Mosaico: 1,
-    Golding: 1,
-    Fuggle: 1,
-    "Safale S-33": 1,
-    Safale: 1,
-    "BE-256": 1,
-  });
+  const [stock, setStock] = useState<Stock>({});
+
   const [modalOpen, setModalOpen] = useState(false);
 
   const handleSeleccion = (id: number) => {
@@ -57,38 +41,108 @@ export default function Recetas() {
     );
   };
 
-  const producirReceta = () => {
+  const producirReceta = async () => {
     if (!recetaSeleccionada) return;
 
-    const nuevoStock = { ...stock };
-
-    // Solución tipada para acceder a las propiedades
-    const categorias: Array<
-      keyof Pick<Receta, "maltas" | "lupulos" | "levaduras">
-    > = ["maltas", "lupulos", "levaduras"];
-
-    categorias.forEach((categoria) => {
-      recetaSeleccionada[categoria].forEach((item) => {
-        nuevoStock[item.nombre] =
-          (nuevoStock[item.nombre] || 0) - item.cantidad;
+    try {
+      await axios.post(`${API_URL}/preparar-bebida/`, {
+        receta_id: recetaSeleccionada.id,
+        cantidad: 1,
       });
-    });
 
-    setStock(nuevoStock);
-    setRecetaSeleccionada(null);
-    setModalOpen(false);
+      toast.success("Producción realizada con éxito! 🍻");
 
-    toast.success("Producción realizada con éxito! 🍻", {
-      position: "top-center",
-      autoClose: 3000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      theme: "light",
-    });
+      // Recargar stock actualizado desde el backend
+      const response = await axios.get(`${API_URL}/ingredientes/`);
+      const ingredientes = response.data;
+
+      const stockMap: Stock = {};
+      ingredientes.forEach((ing: any) => {
+        stockMap[ing.nombre_ingrediente] = ing.stock;
+      });
+      setStock(stockMap);
+
+      // Reset UI
+      setRecetaSeleccionada(null);
+      setModalOpen(false);
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.error || "Error al preparar la receta."
+      );
+    }
   };
+
+  const [recetas, setRecetas] = useState<Receta[]>([]);
+
+  useEffect(() => {
+    const fetchRecetas = async () => {
+      try {
+        const response = await axios.get(
+          `${API_URL}/recetas-con-ingredientes/`
+        );
+        const data = response.data;
+
+        const mapped: Receta[] = data.map((receta: any) => {
+          const tipos = receta.tipos || [];
+
+          const ingredientesPorTipo = {
+            maltas: [] as Ingrediente[],
+            lupulos: [] as Ingrediente[],
+            levaduras: [] as Ingrediente[],
+          };
+
+          tipos.forEach((tipo: any) => {
+            const key = tipo.nombre_tipo.toLowerCase();
+            const tipoKey = key === "lúpulos" ? "lupulos" : key;
+            if (["maltas", "lupulos", "levaduras"].includes(tipoKey)) {
+              ingredientesPorTipo[tipoKey as keyof typeof ingredientesPorTipo] =
+                tipo.ingredientes.map((ing: any) => ({
+                  nombre: ing.nombre_ingrediente,
+                  cantidad: ing.cantidad,
+                }));
+            }
+          });
+
+          return {
+            id: receta.id,
+            nombre: receta.nombre_receta, // 👈 Ajusta si tu campo es "nombre_receta"
+            descripcion: receta.descripcion,
+            abv: receta.porcentaje_alcohol,
+            volumen: receta.contenido_neto,
+            estilo: receta.nombre_receta, // o puedes usar un campo extra si tienes "estilo"
+            instrucciones: "", // opcional si luego las agregas
+            ...ingredientesPorTipo,
+          };
+        });
+
+        setRecetas(mapped);
+      } catch (error) {
+        console.error("Error al cargar recetas:", error);
+      }
+    };
+
+    fetchRecetas();
+  }, []);
+  useEffect(() => {
+    const fetchStock = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/ingredientes/`);
+        const ingredientes = response.data;
+
+        const stockMap: Stock = {};
+        ingredientes.forEach((ing: any) => {
+          stockMap[ing.nombre_ingrediente] = ing.stock;
+        });
+
+        setStock(stockMap);
+      } catch (error) {
+        console.error("Error al cargar el stock:", error);
+      }
+    };
+
+    fetchStock();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div

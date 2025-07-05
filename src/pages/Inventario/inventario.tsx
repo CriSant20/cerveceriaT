@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
+import axios from "axios";
+const API_URL = import.meta.env.VITE_API_URL;
 import {
   FiEdit2,
   FiTrash2,
@@ -17,27 +19,10 @@ type InventoryItem = {
   unidad: string;
 };
 
-type InventoryCategory = "maltas" | "lupulos" | "levaduras";
+type InventoryCategory = "maltas" | "lúpulos" | "levaduras";
 
 type InventoryData = {
   [key in InventoryCategory]: InventoryItem[];
-};
-
-// Mock data
-const initialInventory: InventoryData = {
-  maltas: [
-    { id: 1, nombre: "Pilsen", stock: 10.5, unidad: "kg" },
-    { id: 2, nombre: "Munich", stock: 5.2, unidad: "kg" },
-    { id: 3, nombre: "Caramelo", stock: 3.7, unidad: "kg" },
-  ],
-  lupulos: [
-    { id: 1, nombre: "Saaz", stock: 200, unidad: "g" },
-    { id: 2, nombre: "Cascade", stock: 150, unidad: "g" },
-  ],
-  levaduras: [
-    { id: 1, nombre: "Safale S-33", stock: 5, unidad: "g" },
-    { id: 2, nombre: "US-05", stock: 3, unidad: "g" },
-  ],
 };
 
 // Componente para la barra de búsqueda
@@ -195,7 +180,12 @@ const InventoryTable = ({
 
 // Componente principal optimizado
 const Inventario = () => {
-  const [inventory, setInventory] = useState<InventoryData>(initialInventory);
+  const [inventory, setInventory] = useState<InventoryData>({
+    maltas: [],
+    "lúpulos": [],
+    levaduras: [],
+  });
+
   const [searchTerm, setSearchTerm] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [tempStock, setTempStock] = useState("");
@@ -209,19 +199,25 @@ const Inventario = () => {
 
     return {
       maltas: filterItems("maltas"),
-      lupulos: filterItems("lupulos"),
+      lupulos: filterItems("lúpulos"),
       levaduras: filterItems("levaduras"),
     };
   }, [inventory, searchTerm]);
 
   // Guardar cambios en el inventario
-  const handleSave = (category: InventoryCategory, id: number) => {
-    const stockValue = parseFloat(tempStock);
-    if (isNaN(stockValue) || stockValue < 0) {
-      alert("Por favor ingrese un valor válido (número positivo)");
-      return;
-    }
+const handleSave = async (category: InventoryCategory, id: number) => {
+  const stockValue = parseFloat(tempStock);
+  if (isNaN(stockValue) || stockValue < 0) {
+    alert("Por favor ingrese un valor válido (número positivo)");
+    return;
+  }
 
+  try {
+    await axios.patch(`${API_URL}/ingredientes/${id}/`, {
+      stock: stockValue,
+    });
+
+    // Actualiza también el estado local
     setInventory((prev) => ({
       ...prev,
       [category]: prev[category].map((item) =>
@@ -231,7 +227,46 @@ const Inventario = () => {
 
     setEditingId(null);
     setTempStock("");
-  };
+  } catch (error) {
+    console.error("Error al guardar los cambios:", error);
+    alert("Hubo un error al guardar los cambios. Intente nuevamente.");
+  }
+};
+
+  useEffect(() => {
+    const fetchInventory = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/tipos-con-ingredientes/`);
+        const data = response.data;
+        console.log("Datos de inventario:", data);
+        const mapped: InventoryData = {
+          maltas: [],
+          "lúpulos": [],
+          levaduras: [],
+        };
+
+        data.forEach((tipo: any) => {
+          const categoria = tipo.nombre_tipo.toLowerCase(); // "Maltas" → "maltas"
+          if (mapped[categoria as InventoryCategory]) {
+            mapped[categoria as InventoryCategory] = tipo.ingredientes.map(
+              (ing: any) => ({
+                id: ing.id,
+                nombre: ing.nombre_ingrediente,
+                stock: ing.stock,
+                unidad: ing.unidad.nombre,
+              })
+            );
+          }
+        });
+
+        setInventory(mapped);
+      } catch (error) {
+        console.error("Error al cargar inventario:", error);
+      }
+    };
+
+    fetchInventory();
+  }, []);
 
   // Eliminar item con confirmación
   const handleDelete = (category: InventoryCategory, id: number) => {
@@ -278,7 +313,9 @@ const Inventario = () => {
               <div>
                 <h1 className="text-4xl md:text-5xl font-bold text-amber-100 tracking-tight">
                   <span className="block">INVENTARIO</span>
-                  <span className="block text-amber-300">Registro de Materia Prima</span>
+                  <span className="block text-amber-300">
+                    Registro de Materia Prima
+                  </span>
                 </h1>
               </div>
             </div>
@@ -304,9 +341,9 @@ const Inventario = () => {
         <InventoryTable
           title="Lúpulos"
           items={filteredItems.lupulos}
-          onDelete={(id) => handleDelete("lupulos", id)}
-          onAdd={() => handleAddItem("lupulos")}
-          onSave={(id) => handleSave("lupulos", id)}
+          onDelete={(id) => handleDelete("lúpulos", id)}
+          onAdd={() => handleAddItem("lúpulos")}
+          onSave={(id) => handleSave("lúpulos", id)}
           editingId={editingId}
           setEditingId={setEditingId}
           tempStock={tempStock}
