@@ -14,7 +14,7 @@ export interface Receta {
   descripcion?: string;      // Make optional if not all recipes have it
 }
 
-interface Ingrediente {
+export interface Ingrediente {
   nombre: string;
   cantidad: number;
 }
