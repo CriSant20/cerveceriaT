@@ -1,5 +1,13 @@
-import { useState, useMemo } from 'react';
-import { FiEdit2, FiTrash2, FiPlus, FiSearch, FiCheck, FiX } from 'react-icons/fi';
+import { useState, useMemo } from "react";
+import {
+  FiEdit2,
+  FiTrash2,
+  FiPlus,
+  FiSearch,
+  FiCheck,
+  FiX,
+} from "react-icons/fi";
+import { FaBeer } from "react-icons/fa";
 
 // Types
 type InventoryItem = {
@@ -9,7 +17,7 @@ type InventoryItem = {
   unidad: string;
 };
 
-type InventoryCategory = 'maltas' | 'lupulos' | 'levaduras';
+type InventoryCategory = "maltas" | "lupulos" | "levaduras";
 
 type InventoryData = {
   [key in InventoryCategory]: InventoryItem[];
@@ -18,22 +26,28 @@ type InventoryData = {
 // Mock data
 const initialInventory: InventoryData = {
   maltas: [
-    { id: 1, nombre: 'Pilsen', stock: 10.5, unidad: 'kg' },
-    { id: 2, nombre: 'Munich', stock: 5.2, unidad: 'kg' },
-    { id: 3, nombre: 'Caramelo', stock: 3.7, unidad: 'kg' },
+    { id: 1, nombre: "Pilsen", stock: 10.5, unidad: "kg" },
+    { id: 2, nombre: "Munich", stock: 5.2, unidad: "kg" },
+    { id: 3, nombre: "Caramelo", stock: 3.7, unidad: "kg" },
   ],
   lupulos: [
-    { id: 1, nombre: 'Saaz', stock: 200, unidad: 'g' },
-    { id: 2, nombre: 'Cascade', stock: 150, unidad: 'g' },
+    { id: 1, nombre: "Saaz", stock: 200, unidad: "g" },
+    { id: 2, nombre: "Cascade", stock: 150, unidad: "g" },
   ],
   levaduras: [
-    { id: 1, nombre: 'Safale S-33', stock: 5, unidad: 'g' },
-    { id: 2, nombre: 'US-05', stock: 3, unidad: 'g' },
+    { id: 1, nombre: "Safale S-33", stock: 5, unidad: "g" },
+    { id: 2, nombre: "US-05", stock: 3, unidad: "g" },
   ],
 };
 
 // Componente para la barra de búsqueda
-const SearchBar = ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
+const SearchBar = ({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) => (
   <div className="relative mb-6">
     <FiSearch className="absolute left-3 top-3 text-gray-400" />
     <input
@@ -89,16 +103,26 @@ const InventoryTable = ({
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unidad</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Nombre
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Stock
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Unidad
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Acciones
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {items.map((item) => (
               <tr key={`${title}-${item.id}-${item.nombre}`}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.nombre}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {item.nombre}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {editingId === item.id ? (
                     <input
@@ -107,14 +131,16 @@ const InventoryTable = ({
                       value={tempStock}
                       onChange={(e) => setTempStock(e.target.value)}
                       min="0"
-                      step={item.unidad === 'kg' ? "0.1" : "1"}
+                      step={item.unidad === "kg" ? "0.1" : "1"}
                       aria-label={`Editar stock de ${item.nombre}`}
                     />
                   ) : (
                     item.stock
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.unidad}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {item.unidad}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex gap-2">
                   {editingId === item.id ? (
                     <>
@@ -128,7 +154,7 @@ const InventoryTable = ({
                       <button
                         onClick={() => {
                           setEditingId(null);
-                          setTempStock('');
+                          setTempStock("");
                         }}
                         className="text-red-600 hover:text-red-800"
                         aria-label="Cancelar edición"
@@ -170,21 +196,21 @@ const InventoryTable = ({
 // Componente principal optimizado
 const Inventario = () => {
   const [inventory, setInventory] = useState<InventoryData>(initialInventory);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [tempStock, setTempStock] = useState('');
+  const [tempStock, setTempStock] = useState("");
 
   // Filtrar items basado en búsqueda (memoizado)
   const filteredItems = useMemo(() => {
-    const filterItems = (category: InventoryCategory) => 
-      inventory[category].filter(item =>
+    const filterItems = (category: InventoryCategory) =>
+      inventory[category].filter((item) =>
         item.nombre.toLowerCase().includes(searchTerm.toLowerCase())
       );
 
     return {
-      maltas: filterItems('maltas'),
-      lupulos: filterItems('lupulos'),
-      levaduras: filterItems('levaduras'),
+      maltas: filterItems("maltas"),
+      lupulos: filterItems("lupulos"),
+      levaduras: filterItems("levaduras"),
     };
   }, [inventory, searchTerm]);
 
@@ -196,23 +222,27 @@ const Inventario = () => {
       return;
     }
 
-    setInventory(prev => ({
+    setInventory((prev) => ({
       ...prev,
-      [category]: prev[category].map(item =>
+      [category]: prev[category].map((item) =>
         item.id === id ? { ...item, stock: stockValue } : item
       ),
     }));
 
     setEditingId(null);
-    setTempStock('');
+    setTempStock("");
   };
 
   // Eliminar item con confirmación
   const handleDelete = (category: InventoryCategory, id: number) => {
-    if (window.confirm('¿Está seguro que desea eliminar este item del inventario?')) {
-      setInventory(prev => ({
+    if (
+      window.confirm(
+        "¿Está seguro que desea eliminar este item del inventario?"
+      )
+    ) {
+      setInventory((prev) => ({
         ...prev,
-        [category]: prev[category].filter(item => item.id !== id),
+        [category]: prev[category].filter((item) => item.id !== id),
       }));
     }
   };
@@ -225,17 +255,46 @@ const Inventario = () => {
 
   return (
     <div className="space-y-6 p-6 max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold text-gray-800">Gestión de Inventario</h1>
-      
-      <SearchBar value={searchTerm} onChange={setSearchTerm} />
+      <div
+        className="max-w-6xl mx-auto px-6 py-8"
+        style={{
+          background: `
+            linear-gradient(to right, rgba(17, 24, 39, 0.9), rgba(31, 41, 55, 0.7)),
+            url('path-a-tu-textura-opcional.jpg') center/cover
+          `,
+          borderBottom: "1px solid rgba(217, 119, 6, 0.3)",
+        }}
+      >
+        <div className="flex flex-col md:flex-row justify-between items-center">
+          <div className="mb-6 md:mb-0 text-center md:text-left">
+            <div className="flex items-center justify-center md:justify-start">
+              {/* Contenedor del icono con efecto glow */}
+              <div className="relative mr-4">
+                <div className="absolute -inset-1 bg-gradient-to-tr from-amber-500/30 to-amber-700/20 rounded-full blur-sm"></div>
+                <FaBeer className="relative text-amber-400 text-4xl" />
+              </div>
 
+              {/* Textos */}
+              <div>
+                <h1 className="text-4xl md:text-5xl font-bold text-amber-100 tracking-tight">
+                  <span className="block">INVENTARIO</span>
+                  <span className="block text-amber-300">Registro de Materia Prima</span>
+                </h1>
+              </div>
+            </div>
+          </div>
+        </div>{" "}
+        {/* Cierre del div flex-col md:flex-row */}
+      </div>{" "}
+      {/* Cierre del div con el gradiente */}
+      <SearchBar value={searchTerm} onChange={setSearchTerm} />
       <div className="space-y-6">
         <InventoryTable
           title="Maltas"
           items={filteredItems.maltas}
-          onDelete={(id) => handleDelete('maltas', id)}
-          onAdd={() => handleAddItem('maltas')}
-          onSave={(id) => handleSave('maltas', id)}
+          onDelete={(id) => handleDelete("maltas", id)}
+          onAdd={() => handleAddItem("maltas")}
+          onSave={(id) => handleSave("maltas", id)}
           editingId={editingId}
           setEditingId={setEditingId}
           tempStock={tempStock}
@@ -245,9 +304,9 @@ const Inventario = () => {
         <InventoryTable
           title="Lúpulos"
           items={filteredItems.lupulos}
-          onDelete={(id) => handleDelete('lupulos', id)}
-          onAdd={() => handleAddItem('lupulos')}
-          onSave={(id) => handleSave('lupulos', id)}
+          onDelete={(id) => handleDelete("lupulos", id)}
+          onAdd={() => handleAddItem("lupulos")}
+          onSave={(id) => handleSave("lupulos", id)}
           editingId={editingId}
           setEditingId={setEditingId}
           tempStock={tempStock}
@@ -257,9 +316,9 @@ const Inventario = () => {
         <InventoryTable
           title="Levaduras"
           items={filteredItems.levaduras}
-          onDelete={(id) => handleDelete('levaduras', id)}
-          onAdd={() => handleAddItem('levaduras')}
-          onSave={(id) => handleSave('levaduras', id)}
+          onDelete={(id) => handleDelete("levaduras", id)}
+          onAdd={() => handleAddItem("levaduras")}
+          onSave={(id) => handleSave("levaduras", id)}
           editingId={editingId}
           setEditingId={setEditingId}
           tempStock={tempStock}

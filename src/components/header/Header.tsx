@@ -1,5 +1,5 @@
 import React from "react";
-import logo from "../../assets/img/cerveza.jpeg";
+import logo from "../../assets/img/logonefer.jpeg";
 import headerBackground from "../../assets/img/headerkikinsecurity.jpg";
 
 const Header: React.FC = () => {
@@ -23,15 +23,6 @@ const Header: React.FC = () => {
             alt="Logo"
             className="relative h-16 md:h-20 lg:h-24 rounded-full border-2 border-amber-800/30 shadow-lg object-cover"
           />
-        </div>
-        
-        <div>
-          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-amber-300 to-amber-100">
-            CERVECERIA
-          </h1>
-          <p className="text-lg md:text-xl lg:text-2xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-amber-400 to-amber-200">
-            NEFER
-          </p>
         </div>
       </div>
     </header>

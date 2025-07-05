@@ -59,22 +59,34 @@ const Principal = () => {
           to="/app/home"
           className="flex items-center gap-4 px-4 py-2 hover:bg-blue-800 transition-colors"
         >
-          <FiHome size={20} />
-          {isMenuOpen && <span>Inicio</span>}
+          <FiHome size={20} className={`text-xn  tracking-widest text-amber-300 transition-all duration-300 ${
+              isMenuOpen ? "opacity-100" : "opacity-0 h-0 overflow-hidden"
+            }`} />
+          {isMenuOpen && <span className={`text-xn  tracking-widest text-amber-300 transition-all duration-300 ${
+              isMenuOpen ? "opacity-100" : "opacity-0 h-0 overflow-hidden"
+            }`}>Inicio</span>}
         </Link>
         <Link
           to="/app/inventario"
           className="flex items-center gap-4 px-4 py-2 hover:bg-blue-800 transition-colors"
         >
-          <FiDownloadCloud size={20} />
-          {isMenuOpen && <span>Inventario</span>}
+          <FiDownloadCloud size={20} className={`text-xn  tracking-widest text-amber-300 transition-all duration-300 ${
+              isMenuOpen ? "opacity-100" : "opacity-0 h-0 overflow-hidden"
+            }`}/>
+          {isMenuOpen && <span className={`text-xn  tracking-widest text-amber-300 transition-all duration-300 ${
+              isMenuOpen ? "opacity-100" : "opacity-0 h-0 overflow-hidden"
+            }`}>Inventario</span>}
         </Link>
            <Link
           to="/app/recetas"
           className="flex items-center gap-4 px-4 py-2 hover:bg-blue-800 transition-colors"
         >
-          <FiDownloadCloud size={20} />
-          {isMenuOpen && <span>Recetas</span>}
+          <FiDownloadCloud size={20} className={`text-xn  tracking-widest text-amber-300 transition-all duration-300 ${
+              isMenuOpen ? "opacity-100" : "opacity-0 h-0 overflow-hidden"
+            }`} />
+          {isMenuOpen && <span className={`text-xn  tracking-widest text-amber-300 transition-all duration-300 ${
+              isMenuOpen ? "opacity-100" : "opacity-0 h-0 overflow-hidden"
+            }`}>Recetas</span>}
         </Link>
       </Sidebar>
 
