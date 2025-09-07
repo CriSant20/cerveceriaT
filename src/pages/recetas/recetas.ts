@@ -14,7 +14,7 @@ type Receta = {
   lupulos: Ingrediente[];
   levaduras: Ingrediente[];
 };
-
+//@ts-ignore
 const [recetas, setRecetas] = useState<Receta[]>([]);
 
 useEffect(() => {
