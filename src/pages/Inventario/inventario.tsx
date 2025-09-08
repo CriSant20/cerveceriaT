@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import axios from "axios";
 const API_URL = import.meta.env.VITE_API_URL;
 import {
@@ -10,6 +10,7 @@ import {
   FiX,
 } from "react-icons/fi";
 import { FaBeer } from "react-icons/fa";
+import AddItemModal from "../../components/inventario/AddItemModal";
 
 // Types
 type InventoryItem = {
@@ -25,7 +26,7 @@ type InventoryData = {
   [key in InventoryCategory]: InventoryItem[];
 };
 
-// Componente para la barra de búsqueda
+// SearchBar
 const SearchBar = ({
   value,
   onChange,
@@ -46,7 +47,7 @@ const SearchBar = ({
   </div>
 );
 
-// Props para InventoryTable
+// Tabla
 interface InventoryTableProps {
   title: string;
   items: InventoryItem[];
@@ -59,7 +60,6 @@ interface InventoryTableProps {
   setTempStock: (value: string) => void;
 }
 
-// Componente para la tabla de inventario optimizado
 const InventoryTable = ({
   title,
   items,
@@ -76,6 +76,7 @@ const InventoryTable = ({
       <div className="bg-gray-800 text-white px-6 py-3 flex justify-between items-center">
         <h2 className="text-xl font-bold">{title}</h2>
         <button
+          type="button"
           onClick={onAdd}
           className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 px-3 py-1 rounded text-sm transition"
           aria-label={`Agregar nuevo item a ${title}`}
@@ -112,7 +113,8 @@ const InventoryTable = ({
                   {editingId === item.id ? (
                     <input
                       type="number"
-                      className="border rounded px-2 py-1 w-20"
+                      inputMode="decimal"
+                      className="border rounded px-2 py-1 w-24"
                       value={tempStock}
                       onChange={(e) => setTempStock(e.target.value)}
                       min="0"
@@ -126,48 +128,54 @@ const InventoryTable = ({
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {item.unidad}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex gap-2">
-                  {editingId === item.id ? (
-                    <>
-                      <button
-                        onClick={() => onSave(item.id)}
-                        className="text-green-600 hover:text-green-800"
-                        aria-label="Confirmar edición"
-                      >
-                        <FiCheck />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditingId(null);
-                          setTempStock("");
-                        }}
-                        className="text-red-600 hover:text-red-800"
-                        aria-label="Cancelar edición"
-                      >
-                        <FiX />
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => {
-                          setEditingId(item.id);
-                          setTempStock(item.stock.toString());
-                        }}
-                        className="text-amber-600 hover:text-amber-800"
-                        aria-label={`Editar ${item.nombre}`}
-                      >
-                        <FiEdit2 />
-                      </button>
-                      <button
-                        onClick={() => onDelete(item.id)}
-                        className="text-red-600 hover:text-red-800"
-                        aria-label={`Eliminar ${item.nombre}`}
-                      >
-                        <FiTrash2 />
-                      </button>
-                    </>
-                  )}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex gap-2 text-sm text-gray-500">
+                    {editingId === item.id ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => onSave(item.id)}
+                          className="text-green-600 hover:text-green-800"
+                          aria-label="Confirmar edición"
+                        >
+                          <FiCheck />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingId(null);
+                            setTempStock("");
+                          }}
+                          className="text-red-600 hover:text-red-800"
+                          aria-label="Cancelar edición"
+                        >
+                          <FiX />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingId(item.id);
+                            setTempStock(item.stock.toString());
+                          }}
+                          className="text-amber-600 hover:text-amber-800"
+                          aria-label={`Editar ${item.nombre}`}
+                        >
+                          <FiEdit2 />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDelete(item.id)}
+                          className="text-red-600 hover:text-red-800"
+                          aria-label={`Eliminar ${item.nombre}`}
+                        >
+                          <FiTrash2 />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -178,7 +186,7 @@ const InventoryTable = ({
   );
 };
 
-// Componente principal optimizado
+// Página principal
 const Inventario = () => {
   const [inventory, setInventory] = useState<InventoryData>({
     maltas: [],
@@ -190,7 +198,16 @@ const Inventario = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [tempStock, setTempStock] = useState("");
 
-  // Filtrar items basado en búsqueda (memoizado)
+  // Modal Agregar
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [addCategory, setAddCategory] = useState<InventoryCategory>("maltas");
+
+  const openAddModal = useCallback((category: InventoryCategory) => {
+    setAddCategory(category);
+    setIsAddOpen(true);
+  }, []);
+
+  // Filtrado
   const filteredItems = useMemo(() => {
     const filterItems = (category: InventoryCategory) =>
       inventory[category].filter((item) =>
@@ -204,41 +221,41 @@ const Inventario = () => {
     };
   }, [inventory, searchTerm]);
 
-  // Guardar cambios en el inventario
-const handleSave = async (category: InventoryCategory, id: number) => {
-  const stockValue = parseFloat(tempStock);
-  if (isNaN(stockValue) || stockValue < 0) {
-    alert("Por favor ingrese un valor válido (número positivo)");
-    return;
-  }
+  // Guardar cambios (PATCH)
+  const handleSave = useCallback(
+    async (category: InventoryCategory, id: number) => {
+      const stockValue = Number((tempStock || "").replace(",", "."));
+      if (Number.isNaN(stockValue) || stockValue < 0) {
+        alert("Por favor ingrese un valor válido (número positivo)");
+        return;
+      }
 
-  try {
-    await axios.patch(`${API_URL}/ingredientes/${id}/`, {
-      stock: stockValue,
-    });
+      try {
+        await axios.patch(`${API_URL}/ingredientes/${id}/`, { stock: stockValue });
 
-    // Actualiza también el estado local
-    setInventory((prev) => ({
-      ...prev,
-      [category]: prev[category].map((item) =>
-        item.id === id ? { ...item, stock: stockValue } : item
-      ),
-    }));
+        setInventory((prev) => ({
+          ...prev,
+          [category]: prev[category].map((item) =>
+            item.id === id ? { ...item, stock: stockValue } : item
+          ),
+        }));
 
-    setEditingId(null);
-    setTempStock("");
-  } catch (error) {
-    console.error("Error al guardar los cambios:", error);
-    alert("Hubo un error al guardar los cambios. Intente nuevamente.");
-  }
-};
+        setEditingId(null);
+        setTempStock("");
+      } catch (error) {
+        console.error("Error al guardar los cambios:", error);
+        alert("Hubo un error al guardar los cambios. Intente nuevamente.");
+      }
+    },
+    [tempStock]
+  );
 
+  // Carga inicial
   useEffect(() => {
     const fetchInventory = async () => {
       try {
         const response = await axios.get(`${API_URL}/tipos-con-ingredientes/`);
         const data = response.data;
-        console.log("Datos de inventario:", data);
         const mapped: InventoryData = {
           maltas: [],
           "lúpulos": [],
@@ -246,14 +263,14 @@ const handleSave = async (category: InventoryCategory, id: number) => {
         };
 
         data.forEach((tipo: any) => {
-          const categoria = tipo.nombre_tipo.toLowerCase(); // "Maltas" → "maltas"
+          const categoria = (tipo.nombre_tipo || "").toLowerCase();
           if (mapped[categoria as InventoryCategory]) {
-            mapped[categoria as InventoryCategory] = tipo.ingredientes.map(
+            mapped[categoria as InventoryCategory] = (tipo.ingredientes || []).map(
               (ing: any) => ({
                 id: ing.id,
                 nombre: ing.nombre_ingrediente,
                 stock: ing.stock,
-                unidad: ing.unidad.nombre,
+                unidad: ing.unidad?.nombre ?? ing.unidad, // admite string u objeto
               })
             );
           }
@@ -268,13 +285,12 @@ const handleSave = async (category: InventoryCategory, id: number) => {
     fetchInventory();
   }, []);
 
-  // Eliminar item con confirmación
+  // Eliminar 
   const handleDelete = (category: InventoryCategory, id: number) => {
     if (
-      window.confirm(
-        "¿Está seguro que desea eliminar este item del inventario?"
-      )
+      window.confirm("¿Está seguro que desea eliminar este item del inventario?")
     ) {
+      // await axios.delete(`${API_URL}/ingredientes/${id}/`);
       setInventory((prev) => ({
         ...prev,
         [category]: prev[category].filter((item) => item.id !== id),
@@ -282,11 +298,60 @@ const handleSave = async (category: InventoryCategory, id: number) => {
     }
   };
 
-  // Función para agregar nuevo item (placeholder)
+  // REEMPLAZADO: ahora abre el modal y hace POST
   const handleAddItem = (category: InventoryCategory) => {
-    console.log(`Agregar nuevo item a ${category}`);
-    // Implementar lógica para agregar nuevos items
+    openAddModal(category);
   };
+
+  // POST desde el modal
+  const handleAddSubmit = useCallback(
+    async (data: { nombre: string; stock: number; unidad: string }) => {
+      try {
+        // Ajusta los nombres de los campos a tu API real:
+        const payload = {
+          nombre_ingrediente: data.nombre,
+          stock: data.stock,
+          unidad_nombre: data.unidad,       // cambia a unidad_id si corresponde
+          categoria_nombre: addCategory,    // cambia a categoria_id si corresponde
+        };
+
+        const resp = await axios.post(`${API_URL}/ingredientes/`, payload);
+
+        const created = resp.data as {
+          id: number;
+          nombre_ingrediente: string;
+          stock: number;
+          unidad: { nombre: string } | string;
+        };
+
+        const unidadNombre =
+          typeof created.unidad === "string"
+            ? created.unidad
+            : created.unidad?.nombre ?? data.unidad;
+
+        setInventory((prev) => ({
+          ...prev,
+          [addCategory]: [
+            ...prev[addCategory],
+            {
+              id: created?.id ?? Date.now(),
+              nombre: created?.nombre_ingrediente ?? data.nombre,
+              stock: created?.stock ?? data.stock,
+              unidad: unidadNombre,
+            },
+          ],
+        }));
+      } catch (error: any) {
+        console.error("Error al crear el item:", error);
+        const msg =
+          error?.response?.data?.detail ||
+          error?.response?.data?.message ||
+          "No se pudo crear el item. Revisa los datos e intenta nuevamente.";
+        alert(msg);
+      }
+    },
+    [addCategory]
+  );
 
   return (
     <div className="space-y-6 p-6 max-w-6xl mx-auto">
@@ -303,13 +368,10 @@ const handleSave = async (category: InventoryCategory, id: number) => {
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="mb-6 md:mb-0 text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start">
-              {/* Contenedor del icono con efecto glow */}
               <div className="relative mr-4">
                 <div className="absolute -inset-1 bg-gradient-to-tr from-amber-500/30 to-amber-700/20 rounded-full blur-sm"></div>
                 <FaBeer className="relative text-amber-400 text-4xl" />
               </div>
-
-              {/* Textos */}
               <div>
                 <h1 className="text-4xl md:text-5xl font-bold text-amber-100 tracking-tight">
                   <span className="block">INVENTARIO</span>
@@ -320,11 +382,11 @@ const handleSave = async (category: InventoryCategory, id: number) => {
               </div>
             </div>
           </div>
-        </div>{" "}
-        {/* Cierre del div flex-col md:flex-row */}
-      </div>{" "}
-      {/* Cierre del div con el gradiente */}
+        </div>
+      </div>
+
       <SearchBar value={searchTerm} onChange={setSearchTerm} />
+
       <div className="space-y-6">
         <InventoryTable
           title="Maltas"
@@ -362,6 +424,14 @@ const handleSave = async (category: InventoryCategory, id: number) => {
           setTempStock={setTempStock}
         />
       </div>
+
+      {/* Modal de creación */}
+      <AddItemModal
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        onSubmit={handleAddSubmit}
+        category={addCategory}
+      />
     </div>
   );
 };
