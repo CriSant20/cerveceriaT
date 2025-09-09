@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { FiX, FiPlus, FiTrash2, FiEdit2, FiSave, FiRotateCcw } from "react-icons/fi";
+import { FiX, FiPlus, FiTrash2, FiEdit2, FiSave, FiRotateCcw, FiRefreshCcw } from "react-icons/fi";
 import { toast } from "react-toastify";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -21,7 +21,6 @@ type RecetaLite = {
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  // Llamar cuando algo cambie para que el padre refresque su lista “detallada”
   onAnyChange?: () => void;
 };
 
@@ -29,6 +28,15 @@ const tipoLabels: Record<TipoKey, string> = {
   maltas: "Maltas",
   lupulos: "Lúpulos",
   levaduras: "Levaduras",
+};
+
+// === Tipos para opciones de ingredientes ===
+type IngredienteAPI = {
+  id?: number;
+  nombre_ingrediente: string;
+  tipo?: string;     // si tu API lo envía
+  stock?: number;    // opcional
+  unidad?: string;   // opcional
 };
 
 export default function RecipesManagerModal({ isOpen, onClose, onAnyChange }: Props) {
@@ -48,6 +56,18 @@ export default function RecipesManagerModal({ isOpen, onClose, onAnyChange }: Pr
   const [maltas, setMaltas] = useState<Ingred[]>([{ nombre: "", cantidad: 0 }]);
   const [lupulos, setLupulos] = useState<Ingred[]>([{ nombre: "", cantidad: 0 }]);
   const [levaduras, setLevaduras] = useState<Ingred[]>([{ nombre: "", cantidad: 0 }]);
+
+  // === Opciones para los combobox (por tipo) ===
+  const [optionsByType, setOptionsByType] = useState<Record<TipoKey, string[]>>({
+    maltas: [],
+    lupulos: [],
+    levaduras: [],
+  });
+  const [loadingOptions, setLoadingOptions] = useState<Record<TipoKey, boolean>>({
+    maltas: false,
+    lupulos: false,
+    levaduras: false,
+  });
 
   const resetForm = () => {
     setEditingId(null);
@@ -74,13 +94,11 @@ export default function RecipesManagerModal({ isOpen, onClose, onAnyChange }: Pr
     );
   }, [items, filter]);
 
-  // Cargar recetas “lite”
+  // === Cargar recetas “lite” ===
   const loadRecetas = async () => {
     setLoading(true);
     try {
       const { data } = await axios.get(`${API_URL}/recetas/`);
-      // Ajusta si tu API devuelve otra forma:
-      // Aseguramos shape de RecetaLite
       const mapped: RecetaLite[] = (data ?? []).map((r: any) => ({
         id: r.id,
         nombre_receta: r.nombre_receta ?? r.nombre ?? "",
@@ -99,9 +117,56 @@ export default function RecipesManagerModal({ isOpen, onClose, onAnyChange }: Pr
     }
   };
 
+  // === Cargar opciones por tipo (con fallback) ===
+  const fetchOptionsForType = async (tipo: TipoKey) => {
+    setLoadingOptions((prev) => ({ ...prev, [tipo]: true }));
+    try {
+      // 1) Intento con filtro por tipo en el backend
+      const tryTyped = await axios.get(`${API_URL}/ingredientes/`, {
+        params: { tipo }, // si tu API acepta ?tipo=maltas|lupulos|levaduras
+      });
+      let arr: IngredienteAPI[] = Array.isArray(tryTyped.data) ? tryTyped.data : [];
+      // Si vino vacío o el backend ignora "tipo", hacemos fallback:
+      if (!arr.length) {
+        const all = await axios.get(`${API_URL}/ingredientes/`);
+        const allArr: IngredienteAPI[] = Array.isArray(all.data) ? all.data : [];
+        // Filtrado heurístico por nombre si no hay campo "tipo" en la API
+        const filtered = allArr.filter((x) => {
+          const t = (x.tipo || "").toLowerCase();
+          if (t) {
+            // si la API sí trae tipo
+            const normalizedTipo = tipo === "lupulos" ? "lúpulos" : tipo;
+            return t === normalizedTipo || t === tipo;
+          }
+          // si no trae tipo, no filtramos (mostramos todo)
+          return true;
+        });
+        arr = filtered;
+      }
+      const names = [
+        ...new Set(
+          arr
+            .map((x) => x?.nombre_ingrediente?.trim())
+            .filter(Boolean)
+        ),
+      ] as string[];
+      setOptionsByType((prev) => ({ ...prev, [tipo]: names }));
+    } catch (e) {
+      console.error(e);
+      toast.error(`No se pudieron cargar ingredientes de ${tipoLabels[tipo]}`);
+    } finally {
+      setLoadingOptions((prev) => ({ ...prev, [tipo]: false }));
+    }
+  };
+
+  const fetchAllOptions = async () => {
+    await Promise.all(["maltas", "lupulos", "levaduras"].map((t) => fetchOptionsForType(t as TipoKey)));
+  };
+
   useEffect(() => {
     if (isOpen) {
       loadRecetas();
+      fetchAllOptions(); // Carga las opciones al abrir el modal
     }
   }, [isOpen]);
 
@@ -127,10 +192,6 @@ export default function RecipesManagerModal({ isOpen, onClose, onAnyChange }: Pr
   const startEdit = async (rec: RecetaLite) => {
     try {
       setEditingId(rec.id);
-      // Si tienes endpoint detallado, úsalo para traer ingredientes:
-      // const { data } = await axios.get(`${API_URL}/recetas/${rec.id}/`);
-      // Suponiendo respuesta con tipos->ingredientes como en /recetas-con-ingredientes/
-      // Aquí, para no depender, inicializamos desde valores existentes y dejamos user editar ingredientes manualmente.
       setNombre(rec.nombre_receta);
       setEstilo(rec.estilo ?? "");
       setAbv(String(rec.porcentaje_alcohol ?? ""));
@@ -138,10 +199,13 @@ export default function RecipesManagerModal({ isOpen, onClose, onAnyChange }: Pr
       setIbu(String(rec.ibu ?? ""));
       setDescripcion(rec.descripcion ?? "");
 
-      // Si traes ingredientes reales, reemplaza estas líneas con el map desde data:
+      // Si no traes los ingredientes, dejamos una fila por tipo lista para usar el combobox:
       setMaltas([{ nombre: "", cantidad: 0 }]);
       setLupulos([{ nombre: "", cantidad: 0 }]);
       setLevaduras([{ nombre: "", cantidad: 0 }]);
+
+      // Nos aseguramos de tener opciones recargadas
+      fetchAllOptions();
     } catch (e) {
       console.error(e);
       toast.error("No se pudo cargar la receta para edición");
@@ -180,7 +244,7 @@ export default function RecipesManagerModal({ isOpen, onClose, onAnyChange }: Pr
         toast.success("Receta creada");
       }
       await loadRecetas();
-      onAnyChange?.(); // avisa al padre para refrescar su lista detallada
+      onAnyChange?.();
       resetForm();
     } catch (e: any) {
       console.error(e);
@@ -362,27 +426,51 @@ export default function RecipesManagerModal({ isOpen, onClose, onAnyChange }: Pr
               />
             </div>
 
-            {/* Ingredientes por tipo */}
+            {/* Ingredientes por tipo (con COMBOBOX) */}
             {(["maltas", "lupulos", "levaduras"] as TipoKey[]).map((tipo) => {
               const arr = { maltas, lupulos, levaduras }[tipo];
+              const setter = { maltas: setMaltas, lupulos: setLupulos, levaduras: setLevaduras }[tipo];
+              const options = optionsByType[tipo];
               return (
                 <div key={tipo} className="border rounded-lg p-3">
                   <div className="flex items-center justify-between mb-2">
                     <div className="font-medium">{tipoLabels[tipo]}</div>
-                    <button
-                      type="button"
-                      onClick={() => addRow(tipo)}
-                      className="text-sm px-2 py-1 rounded bg-amber-600 text-white hover:bg-amber-700"
-                    >
-                      <FiPlus className="inline mr-1" /> Agregar {tipo.slice(0, -1)}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => addRow(tipo)}
+                        className="text-sm px-2 py-1 rounded bg-amber-600 text-white hover:bg-amber-700"
+                      >
+                        <FiPlus className="inline mr-1" /> Agregar {tipo.slice(0, -1)}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => fetchOptionsForType(tipo)}
+                        className="text-sm px-2 py-1 rounded border border-amber-300 text-amber-700 hover:bg-amber-50"
+                        title={`Recargar ${tipoLabels[tipo]}`}
+                        disabled={loadingOptions[tipo]}
+                      >
+                        <FiRefreshCcw className={`inline mr-1 ${loadingOptions[tipo] ? "animate-spin" : ""}`} />
+                        {loadingOptions[tipo] ? "Cargando..." : "Recargar"}
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Datalist para el combobox de este tipo */}
+                  <datalist id={`dl-${tipo}`}>
+                    {options.map((opt) => (
+                      <option key={opt} value={opt} />
+                    ))}
+                  </datalist>
+
                   <div className="space-y-2">
                     {arr.map((it, i) => (
                       <div key={`${tipo}-${i}`} className="grid grid-cols-12 gap-2">
+                        {/* COMBOBOX: input asociado a datalist */}
                         <input
+                          list={`dl-${tipo}`}
                           className="col-span-7 rounded-lg border border-gray-300 px-3 py-2 focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
-                          placeholder="Nombre ingrediente"
+                          placeholder={`Selecciona ${tipo.slice(0, -1)}...`}
                           value={it.nombre}
                           onChange={(e) => updateRow(tipo, i, { nombre: e.target.value })}
                         />
@@ -409,7 +497,6 @@ export default function RecipesManagerModal({ isOpen, onClose, onAnyChange }: Pr
                 </div>
               );
             })}
-
           </div>
 
           <div className="p-4 border-t flex items-center justify-end gap-2">
