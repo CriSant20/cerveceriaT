@@ -558,11 +558,6 @@ export default function RecipesManagerModal({
             {/* Ingredientes por tipo (con COMBOBOX) */}
             {(["maltas", "lupulos", "levaduras"] as TipoKey[]).map((tipo) => {
               const arr = { maltas, lupulos, levaduras }[tipo];
-              const setter = {
-                maltas: setMaltas,
-                lupulos: setLupulos,
-                levaduras: setLevaduras,
-              }[tipo];
               const options = optionsByType[tipo];
               return (
                 <div key={tipo} className="border rounded-lg p-3">
