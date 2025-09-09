@@ -285,18 +285,25 @@ const Inventario = () => {
     fetchInventory();
   }, []);
 
-  // Eliminar 
-  const handleDelete = (category: InventoryCategory, id: number) => {
-    if (
-      window.confirm("¿Está seguro que desea eliminar este item del inventario?")
-    ) {
-      // await axios.delete(`${API_URL}/ingredientes/${id}/`);
-      setInventory((prev) => ({
-        ...prev,
-        [category]: prev[category].filter((item) => item.id !== id),
-      }));
-    }
-  };
+const handleDelete = async (category: InventoryCategory, id: number) => {
+  const ok = window.confirm("¿Está seguro que desea eliminar este item del inventario?");
+  if (!ok) return;
+
+  try {
+    await axios.delete(`${API_URL}/ingredientes/${id}/`); // <-- elimina en el backend
+    setInventory(prev => ({
+      ...prev,
+      [category]: prev[category].filter(item => item.id !== id),
+    }));
+    // opcional: toast de éxito
+  } catch (err: any) {
+    // Muestra motivo: puede fallar por PROTECT u otros
+    // ej. 400/409 si cambias a PROTECT en el futuro
+    console.error(err);
+    alert(err?.response?.data?.detail ?? "No se pudo eliminar el ingrediente.");
+  }
+};
+
 
   // REEMPLAZADO: ahora abre el modal y hace POST
   const handleAddItem = (category: InventoryCategory) => {
@@ -304,54 +311,44 @@ const Inventario = () => {
   };
 
   // POST desde el modal
-  const handleAddSubmit = useCallback(
-    async (data: { nombre: string; stock: number; unidad: string }) => {
-      try {
-        // Ajusta los nombres de los campos a tu API real:
-        const payload = {
-          nombre_ingrediente: data.nombre,
-          stock: data.stock,
-          unidad_nombre: data.unidad,       // cambia a unidad_id si corresponde
-          categoria_nombre: addCategory,    // cambia a categoria_id si corresponde
-        };
+const handleAddSubmit = async (data: { nombre: string; stock: number; unidad: string }) => {
+  try {
+    // aquí conviertes la categoría a tipo_id como prefieras:
+    const tipoId = addCategory === "maltas" ? 1 : addCategory === "lúpulos" ? 2 : 3;
 
-        const resp = await axios.post(`${API_URL}/ingredientes/`, payload);
+    // convertir "kg"/"g"/... a su id (puedes mapearlo aquí o traerlo del backend)
+    const UNIDAD_MAP: Record<string, number> = { kg: 1, g: 2, L: 3, ml: 4, u: 5 };
+    const unidadId = UNIDAD_MAP[data.unidad];
 
-        const created = resp.data as {
-          id: number;
-          nombre_ingrediente: string;
-          stock: number;
-          unidad: { nombre: string } | string;
-        };
+    const payload = {
+      nombre_ingrediente: data.nombre,
+      stock: data.stock,
+      unidad_id: unidadId,
+      tipo_id: tipoId,
+    };
 
-        const unidadNombre =
-          typeof created.unidad === "string"
-            ? created.unidad
-            : created.unidad?.nombre ?? data.unidad;
+    const resp = await axios.post(`${API_URL}/ingredientes/`, payload);
+    const created = resp.data; // ya trae unidad.nombre y tipo.nombre_tipo
 
-        setInventory((prev) => ({
-          ...prev,
-          [addCategory]: [
-            ...prev[addCategory],
-            {
-              id: created?.id ?? Date.now(),
-              nombre: created?.nombre_ingrediente ?? data.nombre,
-              stock: created?.stock ?? data.stock,
-              unidad: unidadNombre,
-            },
-          ],
-        }));
-      } catch (error: any) {
-        console.error("Error al crear el item:", error);
-        const msg =
-          error?.response?.data?.detail ||
-          error?.response?.data?.message ||
-          "No se pudo crear el item. Revisa los datos e intenta nuevamente.";
-        alert(msg);
-      }
-    },
-    [addCategory]
-  );
+    setInventory(prev => ({
+      ...prev,
+      [addCategory]: [
+        ...prev[addCategory],
+        {
+          id: created.id,
+          nombre: created.nombre_ingrediente,
+          stock: created.stock,
+          unidad: created.unidad?.nombre ?? data.unidad, // usar nombre real devuelto
+        },
+      ],
+    }));
+
+    setIsAddOpen(false);
+  } catch (error: any) {
+    console.error("Error al crear el item:", error);
+    alert(error?.response?.data?.detail || "No se pudo crear el item.");
+  }
+};
 
   return (
     <div className="space-y-6 p-6 max-w-6xl mx-auto">

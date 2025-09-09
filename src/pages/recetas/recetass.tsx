@@ -15,7 +15,9 @@ type Ingrediente = { nombre: string; cantidad: number };
 
 export default function Recetas() {
   const [recetas, setRecetas] = useState<Receta[]>([]);
-  const [recetaSeleccionada, setRecetaSeleccionada] = useState<Receta | null>(null);
+  const [recetaSeleccionada, setRecetaSeleccionada] = useState<Receta | null>(
+    null
+  );
   const [stock, setStock] = useState<Stock>({});
   const [modalOpen, setModalOpen] = useState(false);
   const [isManageOpen, setIsManageOpen] = useState(false);
@@ -41,11 +43,12 @@ export default function Recetas() {
           const key = (tipo.nombre_tipo || "").toLowerCase();
           const tipoKey = key === "lúpulos" ? "lupulos" : key;
           if (["maltas", "lupulos", "levaduras"].includes(tipoKey)) {
-            ingredientesPorTipo[tipoKey as keyof typeof ingredientesPorTipo] =
-              (tipo.ingredientes || []).map((ing: any) => ({
-                nombre: ing.nombre_ingrediente,
-                cantidad: ing.cantidad,
-              }));
+            ingredientesPorTipo[tipoKey as keyof typeof ingredientesPorTipo] = (
+              tipo.ingredientes || []
+            ).map((ing: any) => ({
+              nombre: ing.nombre_ingrediente,
+              cantidad: Number(ing.cantidad ?? 0), // 👈 fuerza número
+            }));
           }
         });
 
@@ -75,7 +78,7 @@ export default function Recetas() {
       const ingredientes = response.data;
       const stockMap: Stock = {};
       ingredientes.forEach((ing: any) => {
-        stockMap[norm(ing.nombre_ingrediente)] = ing.stock;
+        stockMap[norm(ing.nombre_ingrediente)] = Number(ing.stock) || 0; // 👈 fuerza número
       });
       setStock(stockMap);
     } catch (error) {
@@ -101,7 +104,10 @@ export default function Recetas() {
       ...recetaSeleccionada.lupulos,
       ...recetaSeleccionada.levaduras,
     ];
-    return ingredientes.every((item) => (stock[norm(item.nombre)] ?? 0) >= item.cantidad);
+    return ingredientes.every(
+      (item) =>
+        (Number(stock[norm(item.nombre)]) || 0) >= Number(item.cantidad || 0)
+    );
   };
 
   // === PRODUCIR RECETA ===
@@ -118,7 +124,9 @@ export default function Recetas() {
       setRecetaSeleccionada(null);
       setModalOpen(false);
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Error al preparar la receta.");
+      toast.error(
+        error.response?.data?.error || "Error al preparar la receta."
+      );
     }
   };
 
@@ -167,7 +175,10 @@ export default function Recetas() {
                 Stock Total
               </p>
               <p className="text-2xl font-bold text-amber-200">
-                {Object.values(stock).reduce((a, b) => a + b, 0).toFixed(1)} kg
+                {Number(
+                  Object.values(stock).reduce((a, b) => a + Number(b ?? 0), 0)
+                ).toFixed(1)}{" "}
+                kg
               </p>
             </div>
             <button
@@ -216,8 +227,12 @@ export default function Recetas() {
             <div className="bg-gray-800 p-2 text-white">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                 <div className="mb-2 md:mb-0">
-                  <h2 className="text-2xl font-bold">{recetaSeleccionada.nombre}</h2>
-                  <p className="text-amber-300 italic">{recetaSeleccionada.estilo}</p>
+                  <h2 className="text-2xl font-bold">
+                    {recetaSeleccionada.nombre}
+                  </h2>
+                  <p className="text-amber-300 italic">
+                    {recetaSeleccionada.estilo}
+                  </p>
                 </div>
                 <div className="flex items-center space-x-4">
                   <span className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm">
@@ -236,22 +251,47 @@ export default function Recetas() {
             <div className="p-6">
               {recetaSeleccionada.descripcion && (
                 <div className="mb-8">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Descripción</h3>
-                  <p className="text-gray-600">{recetaSeleccionada.descripcion}</p>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                    Descripción
+                  </h3>
+                  <p className="text-gray-600">
+                    {recetaSeleccionada.descripcion}
+                  </p>
                 </div>
               )}
 
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Ingredientes</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                Ingredientes
+              </h3>
               <div className="grid md:grid-cols-3 gap-6 mb-8">
-                <SeccionIngredientes titulo="Maltas" ingredientes={recetaSeleccionada.maltas} stock={stock} tipo="malta" />
-                <SeccionIngredientes titulo="Lúpulos" ingredientes={recetaSeleccionada.lupulos} stock={stock} tipo="lupulo" />
-                <SeccionIngredientes titulo="Levaduras" ingredientes={recetaSeleccionada.levaduras} stock={stock} tipo="levadura" />
+                <SeccionIngredientes
+                  titulo="Maltas"
+                  ingredientes={recetaSeleccionada.maltas}
+                  stock={stock}
+                  tipo="malta"
+                />
+                <SeccionIngredientes
+                  titulo="Lúpulos"
+                  ingredientes={recetaSeleccionada.lupulos}
+                  stock={stock}
+                  tipo="lupulo"
+                />
+                <SeccionIngredientes
+                  titulo="Levaduras"
+                  ingredientes={recetaSeleccionada.levaduras}
+                  stock={stock}
+                  tipo="levadura"
+                />
               </div>
 
               {recetaSeleccionada.instrucciones && (
                 <div className="mb-8">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Instrucciones</h3>
-                  <div className="prose max-w-none">{recetaSeleccionada.instrucciones}</div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                    Instrucciones
+                  </h3>
+                  <div className="prose max-w-none">
+                    {recetaSeleccionada.instrucciones}
+                  </div>
                 </div>
               )}
 
@@ -280,7 +320,10 @@ export default function Recetas() {
         onConfirm={producirReceta}
         receta={
           recetaSeleccionada
-            ? { nombre: recetaSeleccionada.nombre, estilo: recetaSeleccionada.estilo }
+            ? {
+                nombre: recetaSeleccionada.nombre,
+                estilo: recetaSeleccionada.estilo,
+              }
             : null
         }
       />
