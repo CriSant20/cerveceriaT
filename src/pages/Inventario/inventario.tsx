@@ -1,18 +1,27 @@
+// src/pages/Inventario/Inventario.tsx
 import { useEffect, useState, useMemo, useCallback } from "react";
 import axios from "axios";
 const API_URL = import.meta.env.VITE_API_URL;
 import {
-  FiEdit2,
   FiTrash2,
   FiPlus,
   FiSearch,
   FiCheck,
   FiX,
+  FiPackage,
 } from "react-icons/fi";
 import { FaBeer } from "react-icons/fa";
 import AddItemModal from "../../components/inventario/AddItemModal";
+import AdjustInventoryModal from "../../components/inventario/AdjustInventoryModal";
 
-// Types
+// ============================
+// Utils de normalización
+// ============================
+import { formatFixed, roundTo } from "../../utils/number";
+
+// ============================
+// Tipos
+// ============================
 type InventoryItem = {
   id: number;
   nombre: string;
@@ -26,7 +35,9 @@ type InventoryData = {
   [key in InventoryCategory]: InventoryItem[];
 };
 
+// ============================
 // SearchBar
+// ============================
 const SearchBar = ({
   value,
   onChange,
@@ -47,21 +58,30 @@ const SearchBar = ({
   </div>
 );
 
+// ============================
 // Tabla
+// ============================
 interface InventoryTableProps {
   title: string;
+  category: InventoryCategory; // 👈 agregado
   items: InventoryItem[];
   onDelete: (id: number) => void;
   onAdd: () => void;
+
+  // Props de edición inline (pueden quedar, aunque ya no se usen al abrir modal)
   onSave: (id: number) => void;
   editingId: number | null;
   setEditingId: (id: number | null) => void;
   tempStock: string;
   setTempStock: (value: string) => void;
+
+  // Nuevo: abrir modal de ajuste
+  onAdjustClick: (category: InventoryCategory, item: InventoryItem) => void;
 }
 
 const InventoryTable = ({
   title,
+  category,
   items,
   onDelete,
   onAdd,
@@ -70,6 +90,7 @@ const InventoryTable = ({
   setEditingId,
   tempStock,
   setTempStock,
+  onAdjustClick,
 }: InventoryTableProps) => {
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
@@ -118,11 +139,11 @@ const InventoryTable = ({
                       value={tempStock}
                       onChange={(e) => setTempStock(e.target.value)}
                       min="0"
-                      step={item.unidad === "kg" ? "0.1" : "1"}
+                      step="0.001" // 👈 pasos de milésima si usas 3 decimales
                       aria-label={`Editar stock de ${item.nombre}`}
                     />
                   ) : (
-                    item.stock
+                    formatFixed(item.stock) // 👈 SIEMPRE mostrar 3 decimales
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -130,6 +151,20 @@ const InventoryTable = ({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex gap-2 text-sm text-gray-500">
+                    {/* Reemplazamos "Editar" por abrir el modal de ajuste */}
+
+                    <button
+                      type="button"
+                      onClick={() => onAdjustClick(category, item)}
+                      className="flex items-center gap-1 text-amber-600 hover:text-amber-800 px-2 py-1 rounded hover:bg-amber-50 transition"
+                      aria-label={`Ajustar stock de ${item.nombre}`}
+                      title="Ajustar inventario"
+                    >
+                      <FiPackage />
+                      Ajustar
+                    </button>
+
+                    {/* Si quisieras conservar la edición inline, deja estos: */}
                     {editingId === item.id ? (
                       <>
                         <button
@@ -152,29 +187,17 @@ const InventoryTable = ({
                           <FiX />
                         </button>
                       </>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingId(item.id);
-                            setTempStock(item.stock.toString());
-                          }}
-                          className="text-amber-600 hover:text-amber-800"
-                          aria-label={`Editar ${item.nombre}`}
-                        >
-                          <FiEdit2 />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onDelete(item.id)}
-                          className="text-red-600 hover:text-red-800"
-                          aria-label={`Eliminar ${item.nombre}`}
-                        >
-                          <FiTrash2 />
-                        </button>
-                      </>
-                    )}
+                    ) : null}
+
+                    <button
+                      type="button"
+                      onClick={() => onDelete(item.id)}
+                      className="flex items-center gap-1 text-red-600 hover:text-red-800"
+                      aria-label={`Eliminar ${item.nombre}`}
+                    >
+                      <FiTrash2 className="w-4 h-4" />
+                      <span>Eliminar</span>
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -186,11 +209,13 @@ const InventoryTable = ({
   );
 };
 
+// ============================
 // Página principal
+// ============================
 const Inventario = () => {
   const [inventory, setInventory] = useState<InventoryData>({
     maltas: [],
-    "lúpulos": [],
+    lúpulos: [],
     levaduras: [],
   });
 
@@ -202,10 +227,25 @@ const Inventario = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [addCategory, setAddCategory] = useState<InventoryCategory>("maltas");
 
+  // Modal Ajuste (add/remove)
+  const [isAdjustOpen, setIsAdjustOpen] = useState(false);
+  const [adjustCategory, setAdjustCategory] =
+    useState<InventoryCategory | null>(null);
+  const [adjustItem, setAdjustItem] = useState<InventoryItem | null>(null);
+
   const openAddModal = useCallback((category: InventoryCategory) => {
     setAddCategory(category);
     setIsAddOpen(true);
   }, []);
+
+  const openAdjustModal = useCallback(
+    (category: InventoryCategory, item: InventoryItem) => {
+      setAdjustCategory(category);
+      setAdjustItem(item);
+      setIsAdjustOpen(true);
+    },
+    []
+  );
 
   // Filtrado
   const filteredItems = useMemo(() => {
@@ -221,17 +261,20 @@ const Inventario = () => {
     };
   }, [inventory, searchTerm]);
 
-  // Guardar cambios (PATCH)
+  // Guardar cambios inline (PATCH) — mantiene normalización
   const handleSave = useCallback(
     async (category: InventoryCategory, id: number) => {
-      const stockValue = Number((tempStock || "").replace(",", "."));
-      if (Number.isNaN(stockValue) || stockValue < 0) {
+      const stockValueRaw = Number((tempStock || "").replace(",", "."));
+      if (Number.isNaN(stockValueRaw) || stockValueRaw < 0) {
         alert("Por favor ingrese un valor válido (número positivo)");
         return;
       }
+      const stockValue = roundTo(stockValueRaw); // 👈 normaliza
 
       try {
-        await axios.patch(`${API_URL}/ingredientes/${id}/`, { stock: stockValue });
+        await axios.patch(`${API_URL}/ingredientes/${id}/`, {
+          stock: stockValue,
+        });
 
         setInventory((prev) => ({
           ...prev,
@@ -250,6 +293,41 @@ const Inventario = () => {
     [tempStock]
   );
 
+  // Confirmar ajuste desde el modal (PATCH) — usa newStock redondeado
+  const handleAdjustConfirm = useCallback(
+    async (data: {
+      action: "add" | "remove";
+      amount: number;
+      newStock: number;
+      note?: string;
+    }) => {
+      if (!adjustItem || !adjustCategory) return;
+
+      const newStockRounded = roundTo(data.newStock); // 👈 normaliza
+
+      try {
+        await axios.patch(`${API_URL}/ingredientes/${adjustItem.id}/`, {
+          stock: newStockRounded,
+        });
+
+        setInventory((prev) => ({
+          ...prev,
+          [adjustCategory]: prev[adjustCategory].map((it) =>
+            it.id === adjustItem.id ? { ...it, stock: newStockRounded } : it
+          ),
+        }));
+
+        setIsAdjustOpen(false);
+        setAdjustItem(null);
+        setAdjustCategory(null);
+      } catch (error) {
+        console.error("Error al ajustar stock:", error);
+        alert("No se pudo ajustar el stock. Intente nuevamente.");
+      }
+    },
+    [adjustItem, adjustCategory]
+  );
+
   // Carga inicial
   useEffect(() => {
     const fetchInventory = async () => {
@@ -258,21 +336,21 @@ const Inventario = () => {
         const data = response.data;
         const mapped: InventoryData = {
           maltas: [],
-          "lúpulos": [],
+          lúpulos: [],
           levaduras: [],
         };
 
         data.forEach((tipo: any) => {
           const categoria = (tipo.nombre_tipo || "").toLowerCase();
           if (mapped[categoria as InventoryCategory]) {
-            mapped[categoria as InventoryCategory] = (tipo.ingredientes || []).map(
-              (ing: any) => ({
-                id: ing.id,
-                nombre: ing.nombre_ingrediente,
-                stock: ing.stock,
-                unidad: ing.unidad?.nombre ?? ing.unidad, // admite string u objeto
-              })
-            );
+            mapped[categoria as InventoryCategory] = (
+              tipo.ingredientes || []
+            ).map((ing: any) => ({
+              id: ing.id,
+              nombre: ing.nombre_ingrediente,
+              stock: roundTo(Number(ing.stock)), // 👈 normaliza al cargar
+              unidad: ing.unidad?.nombre ?? ing.unidad, // admite string u objeto
+            }));
           }
         });
 
@@ -285,70 +363,81 @@ const Inventario = () => {
     fetchInventory();
   }, []);
 
-const handleDelete = async (category: InventoryCategory, id: number) => {
-  const ok = window.confirm("¿Está seguro que desea eliminar este item del inventario?");
-  if (!ok) return;
+  const handleDelete = async (category: InventoryCategory, id: number) => {
+    const ok = window.confirm(
+      "¿Está seguro que desea eliminar este item del inventario?"
+    );
+    if (!ok) return;
 
-  try {
-    await axios.delete(`${API_URL}/ingredientes/${id}/`); // <-- elimina en el backend
-    setInventory(prev => ({
-      ...prev,
-      [category]: prev[category].filter(item => item.id !== id),
-    }));
-    // opcional: toast de éxito
-  } catch (err: any) {
-    // Muestra motivo: puede fallar por PROTECT u otros
-    // ej. 400/409 si cambias a PROTECT en el futuro
-    console.error(err);
-    alert(err?.response?.data?.detail ?? "No se pudo eliminar el ingrediente.");
-  }
-};
-
+    try {
+      await axios.delete(`${API_URL}/ingredientes/${id}/`);
+      setInventory((prev) => ({
+        ...prev,
+        [category]: prev[category].filter((item) => item.id !== id),
+      }));
+    } catch (err: any) {
+      console.error(err);
+      alert(
+        err?.response?.data?.detail ?? "No se pudo eliminar el ingrediente."
+      );
+    }
+  };
 
   // REEMPLAZADO: ahora abre el modal y hace POST
   const handleAddItem = (category: InventoryCategory) => {
     openAddModal(category);
   };
 
-  // POST desde el modal
-const handleAddSubmit = async (data: { nombre: string; stock: number; unidad: string }) => {
-  try {
-    // aquí conviertes la categoría a tipo_id como prefieras:
-    const tipoId = addCategory === "maltas" ? 1 : addCategory === "lúpulos" ? 2 : 3;
+  // POST desde el modal de creación — normaliza stock
+  const handleAddSubmit = async (data: {
+    nombre: string;
+    stock: number;
+    unidad: string;
+  }) => {
+    try {
+      // aquí conviertes la categoría a tipo_id como prefieras:
+      const tipoId =
+        addCategory === "maltas" ? 1 : addCategory === "lúpulos" ? 2 : 3;
 
-    // convertir "kg"/"g"/... a su id (puedes mapearlo aquí o traerlo del backend)
-    const UNIDAD_MAP: Record<string, number> = { kg: 1, g: 2, L: 3, ml: 4, u: 5 };
-    const unidadId = UNIDAD_MAP[data.unidad];
+      // convertir "kg"/"g"/... a su id (puedes mapearlo aquí o traerlo del backend)
+      const UNIDAD_MAP: Record<string, number> = {
+        kg: 1,
+        g: 2,
+        L: 3,
+        ml: 4,
+        u: 5,
+      };
+      const unidadId = UNIDAD_MAP[data.unidad];
 
-    const payload = {
-      nombre_ingrediente: data.nombre,
-      stock: data.stock,
-      unidad_id: unidadId,
-      tipo_id: tipoId,
-    };
+      const payload = {
+        nombre_ingrediente: data.nombre,
+        stock: roundTo(data.stock), // 👈 normaliza antes de enviar
+        unidad_id: unidadId,
+        tipo_id: tipoId,
+      };
 
-    const resp = await axios.post(`${API_URL}/ingredientes/`, payload);
-    const created = resp.data; // ya trae unidad.nombre y tipo.nombre_tipo
+      const resp = await axios.post(`${API_URL}/ingredientes/`, payload);
+      const created = resp.data; // ya trae unidad.nombre y tipo.nombre_tipo
 
-    setInventory(prev => ({
-      ...prev,
-      [addCategory]: [
-        ...prev[addCategory],
-        {
-          id: created.id,
-          nombre: created.nombre_ingrediente,
-          stock: created.stock,
-          unidad: created.unidad?.nombre ?? data.unidad, // usar nombre real devuelto
-        },
-      ],
-    }));
+      setInventory((prev) => ({
+        ...prev,
+        [addCategory]: [
+          ...prev[addCategory],
+          {
+            id: created.id,
+            nombre: created.nombre_ingrediente,
+            stock: roundTo(created.stock ?? data.stock), // 👈 asegura normalizado en estado
+            unidad: created.unidad?.nombre ?? data.unidad, // usar nombre real devuelto
+          },
+        ],
+      }));
 
-    setIsAddOpen(false);
-  } catch (error: any) {
-    console.error("Error al crear el item:", error);
-    alert(error?.response?.data?.detail || "No se pudo crear el item.");
-  }
-};
+      setIsAddOpen(false);
+    } catch (error: any) {
+      console.error("Error al crear el item:", error);
+      alert(error?.response?.data?.detail || "No se pudo crear el item.");
+    }
+  };
 
   return (
     <div className="space-y-6 p-6 max-w-6xl mx-auto">
@@ -387,6 +476,7 @@ const handleAddSubmit = async (data: { nombre: string; stock: number; unidad: st
       <div className="space-y-6">
         <InventoryTable
           title="Maltas"
+          category="maltas"
           items={filteredItems.maltas}
           onDelete={(id) => handleDelete("maltas", id)}
           onAdd={() => handleAddItem("maltas")}
@@ -395,10 +485,12 @@ const handleAddSubmit = async (data: { nombre: string; stock: number; unidad: st
           setEditingId={setEditingId}
           tempStock={tempStock}
           setTempStock={setTempStock}
+          onAdjustClick={openAdjustModal}
         />
 
         <InventoryTable
           title="Lúpulos"
+          category="lúpulos"
           items={filteredItems.lupulos}
           onDelete={(id) => handleDelete("lúpulos", id)}
           onAdd={() => handleAddItem("lúpulos")}
@@ -407,10 +499,12 @@ const handleAddSubmit = async (data: { nombre: string; stock: number; unidad: st
           setEditingId={setEditingId}
           tempStock={tempStock}
           setTempStock={setTempStock}
+          onAdjustClick={openAdjustModal}
         />
 
         <InventoryTable
           title="Levaduras"
+          category="levaduras"
           items={filteredItems.levaduras}
           onDelete={(id) => handleDelete("levaduras", id)}
           onAdd={() => handleAddItem("levaduras")}
@@ -419,6 +513,7 @@ const handleAddSubmit = async (data: { nombre: string; stock: number; unidad: st
           setEditingId={setEditingId}
           tempStock={tempStock}
           setTempStock={setTempStock}
+          onAdjustClick={openAdjustModal}
         />
       </div>
 
@@ -429,6 +524,23 @@ const handleAddSubmit = async (data: { nombre: string; stock: number; unidad: st
         onSubmit={handleAddSubmit}
         category={addCategory}
       />
+
+      {/* Modal de ajuste (sumar/quitar) */}
+      {isAdjustOpen && adjustItem && adjustCategory && (
+        <AdjustInventoryModal
+          isOpen={isAdjustOpen}
+          onClose={() => {
+            setIsAdjustOpen(false);
+            setAdjustItem(null);
+            setAdjustCategory(null);
+          }}
+          onConfirm={handleAdjustConfirm}
+          itemName={adjustItem.nombre}
+          currentStock={adjustItem.stock}
+          unidad={adjustItem.unidad}
+          defaultAction="add"
+        />
+      )}
     </div>
   );
 };
