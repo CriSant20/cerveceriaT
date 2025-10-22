@@ -5,7 +5,7 @@ import { IngredienteCard } from './IngredienteCard'
 interface Props {
   titulo: string
   ingredientes: Ingrediente[]
-  stock: { [nombre: string]: number }
+  stockById: { [id: number]: number }  // 👈 Cambiado de string a number
   className?: string
   tipo?: 'malta' | 'lupulo' | 'levadura'
 }
@@ -13,7 +13,7 @@ interface Props {
 export const SeccionIngredientes: React.FC<Props> = ({ 
   titulo, 
   ingredientes, 
-  stock,
+  stockById,  // 👈 Renombrado
   tipo = 'malta'
 }) => {
   const iconos = {
@@ -37,10 +37,10 @@ export const SeccionIngredientes: React.FC<Props> = ({
       <div className="grid grid-cols-1 gap-3">
         {ingredientes.map((item, i) => (
           <IngredienteCard
-            key={i}
+            key={item.id || i}
             nombre={item.nombre}
             necesario={item.cantidad}
-            disponible={stock[item.nombre] ?? 0}
+            disponible={stockById[item.id] ?? 0}  // 👈 Usar item.id en vez de item.nombre
             tipo={tipo}
           />
         ))}

@@ -10,107 +10,128 @@ import { FaBeer } from "react-icons/fa";
 import RecipesManagerModal from "../../components/Recetas/RecipesManagerModal";
 
 // Tipos locales
-type Stock = Record<string, number>;
 type IngredienteReceta = { id: number; nombre: string; cantidad: number };
 type StockById = Record<number, number>;
+
 export default function Recetas() {
   const [recetas, setRecetas] = useState<Receta[]>([]);
-  const [recetaSeleccionada, setRecetaSeleccionada] = useState<Receta | null>(
-    null
-  );
+  const [recetaSeleccionada, setRecetaSeleccionada] = useState<Receta | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [stockById, setStockById] = useState<StockById>({});
   const [isManageOpen, setIsManageOpen] = useState(false);
+  const [loadingStock, setLoadingStock] = useState(false);
+
   const toNumber = (v: any) => {
-  if (v == null) return 0;
-  if (typeof v === "number") return v;
-  const num = parseFloat(String(v).replace(",", ".").replace(/[^\d.]/g, ""));
-  return isNaN(num) ? 0 : num;
-};
+    if (v == null) return 0;
+    if (typeof v === "number") return v;
+    const num = parseFloat(String(v).replace(",", ".").replace(/[^\d.]/g, ""));
+    return isNaN(num) ? 0 : num;
+  };
 
   // === FETCH RECETAS ===
-const fetchRecetas = async () => {
-  try {
-    const response = await axios.get(`${API_URL}/recetas-con-ingredientes/`);
-    const data = response.data;
+  const fetchRecetas = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/recetas-con-ingredientes/`);
+      const data = response.data;
 
-    const mapped: Receta[] = data.map((receta: any) => {
-      const tipos = receta.tipos || [];
-      const ingredientesPorTipo = {
-        maltas: [] as IngredienteReceta[],
-        lupulos: [] as IngredienteReceta[],
-        levaduras: [] as IngredienteReceta[],
-      };
+      // 👇 Construir el stock desde las recetas
+      const stockTemp: StockById = {};
 
-      tipos.forEach((tipo: any) => {
-        const key = (tipo.nombre_tipo || "").toLowerCase();
-        const tipoKey = key === "lúpulos" ? "lupulos" : key;
-        if (["maltas", "lupulos", "levaduras"].includes(tipoKey)) {
-          ingredientesPorTipo[tipoKey as keyof typeof ingredientesPorTipo] =
-            (tipo.ingredientes || []).map((ing: any) => ({
-              id: Number(ing.id), // 👈 NECESARIO para cruzar por id
-              nombre: ing.nombre_ingrediente,
-              cantidad: toNumber(ing.cantidad), // 👈 no fuerces Number plano
-            }));
-        }
+      const mapped: Receta[] = data.map((receta: any) => {
+        const tipos = receta.tipos || [];
+        const ingredientesPorTipo = {
+          maltas: [] as IngredienteReceta[],
+          lupulos: [] as IngredienteReceta[],
+          levaduras: [] as IngredienteReceta[],
+        };
+
+        tipos.forEach((tipo: any) => {
+          const key = (tipo.nombre_tipo || "").toLowerCase();
+          const tipoKey = key === "lúpulos" ? "lupulos" : key;
+          
+          if (["maltas", "lupulos", "levaduras"].includes(tipoKey)) {
+            ingredientesPorTipo[tipoKey as keyof typeof ingredientesPorTipo] =
+              (tipo.ingredientes || []).map((ing: any) => {
+                const ingredienteId = Number(ing.ingrediente_id || ing.id);
+                const stockValue = toNumber(ing.stock);
+                
+                // Guardar en objeto temporal
+                stockTemp[ingredienteId] = stockValue;
+                
+                return {
+                  id: ingredienteId,
+                  nombre: ing.nombre_ingrediente,
+                  cantidad: toNumber(ing.cantidad),
+                };
+              });
+          }
+        });
+
+        return {
+          id: receta.id,
+          nombre: receta.nombre_receta,
+          descripcion: receta.descripcion ?? "",
+          ibu: receta.ibu ?? receta.ibu_estimada ?? 0,
+          abv: receta.porcentaje_alcohol ?? 0,
+          volumen: receta.contenido_neto ?? 0,
+          estilo: receta.estilo ?? receta.nombre_receta,
+          instrucciones: receta.instrucciones ?? "",
+          ...ingredientesPorTipo,
+        };
       });
 
-      return {
-        id: receta.id,
-        nombre: receta.nombre_receta,
-        descripcion: receta.descripcion ?? "",
-        ibu: receta.ibu ?? receta.ibu_estimada ?? 0,
-        abv: receta.porcentaje_alcohol ?? 0,
-        volumen: receta.contenido_neto ?? 0,
-        estilo: receta.estilo ?? receta.nombre_receta,
-        instrucciones: receta.instrucciones ?? "",
-        ...ingredientesPorTipo,
-      };
-    });
-
-    setRecetas(mapped);
-  } catch (error) {
-    console.error("Error al cargar recetas:", error);
-  }
-};
+      setRecetas(mapped);
+      // 👇 Setear el stock UNA SOLA VEZ con todos los datos
+      setStockById(stockTemp);
+    } catch (error) {
+      console.error("Error al cargar recetas:", error);
+    }
+  };
 
   // === FETCH STOCK ===
-const fetchStock = async () => {
-  try {
-    const { data } = await axios.get(`${API_URL}/ingredientes/`);
-    const byId: StockById = {};
-    for (const ing of data) {
-      byId[Number(ing.id)] = Number(ing.stock) || 0;
+  const fetchStock = async () => {
+    setLoadingStock(true);
+    try {
+      const { data } = await axios.get(`${API_URL}/ingredientes/`);
+      const byId: StockById = {};
+      for (const ing of data) {
+        byId[Number(ing.id)] = Number(ing.stock) || 0;
+      }
+      setStockById(byId);
+    } catch (e) {
+      console.error("Error al cargar stock:", e);
+    } finally {
+      setLoadingStock(false);
     }
-    setStockById(byId);
-  } catch (e) {
-    console.error("Error al cargar stock:", e);
-  }
-};
-
+  };
 
   useEffect(() => {
     fetchRecetas();
-    fetchStock();
+    // Ya NO cargamos el stock al inicio
   }, []);
 
   // === SELECCIÓN ===
-  const handleSeleccion = (id: number) => {
+  const handleSeleccion = async (id: number) => {
     const receta = recetas.find((r) => r.id === id) || null;
     setRecetaSeleccionada(receta);
+    
+    // Cargar el stock solo cuando se selecciona una receta
+    if (receta) {
+      await fetchStock();
+    }
   };
 
-const puedeProducir = (): boolean => {
-  if (!recetaSeleccionada) return false;
-  const ingredientes = [
-    ...recetaSeleccionada.maltas,
-    ...recetaSeleccionada.lupulos,
-    ...recetaSeleccionada.levaduras,
-  ];
-  return ingredientes.every(
-    (item) => (stockById[item.id] ?? 0) >= (item.cantidad ?? 0)
-  );
-};
+  const puedeProducir = (): boolean => {
+    if (!recetaSeleccionada) return false;
+    const ingredientes = [
+      ...recetaSeleccionada.maltas,
+      ...recetaSeleccionada.lupulos,
+      ...recetaSeleccionada.levaduras,
+    ];
+    return ingredientes.every(
+      (item) => (stockById[item.id] ?? 0) >= (item.cantidad ?? 0)
+    );
+  };
 
   // === PRODUCIR RECETA ===
   const producirReceta = async () => {
@@ -209,6 +230,7 @@ const puedeProducir = (): boolean => {
               onChange={(e) => handleSeleccion(Number(e.target.value))}
               className="block w-full pl-4 pr-10 py-3 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 rounded-lg appearance-none bg-white"
               value={recetaSeleccionada?.id ?? ""}
+              disabled={loadingStock}
             >
               <option value="">-- Selecciona una receta --</option>
               {recetas.map((receta) => (
@@ -226,6 +248,11 @@ const puedeProducir = (): boolean => {
         {/* DETALLE */}
         {recetaSeleccionada && (
           <div className="bg-white rounded-xl shadow-md overflow-hidden mb-2 transition-all duration-300">
+            {loadingStock && (
+              <div className="bg-amber-50 border-b border-amber-200 p-3 text-center">
+                <p className="text-amber-700 text-sm">🔄 Cargando stock de ingredientes...</p>
+              </div>
+            )}
             <div className="bg-gray-800 p-2 text-white">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                 <div className="mb-2 md:mb-0">
@@ -269,19 +296,19 @@ const puedeProducir = (): boolean => {
                 <SeccionIngredientes
                   titulo="Maltas"
                   ingredientes={recetaSeleccionada.maltas}
-                  stock={stockById}
+                  stockById={stockById}
                   tipo="malta"
                 />
                 <SeccionIngredientes
                   titulo="Lúpulos"
                   ingredientes={recetaSeleccionada.lupulos}
-                  stock={stockById}
+                  stockById={stockById}
                   tipo="lupulo"
                 />
                 <SeccionIngredientes
                   titulo="Levaduras"
                   ingredientes={recetaSeleccionada.levaduras}
-                  stock={stockById }
+                  stockById={stockById}
                   tipo="levadura"
                 />
               </div>
