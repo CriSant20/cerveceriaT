@@ -3,6 +3,7 @@ import axios from "axios";
 const API_URL = import.meta.env.VITE_API_URL;
 
 type Ingrediente = {
+  id: number;
   nombre: string;
   cantidad: number;
 };

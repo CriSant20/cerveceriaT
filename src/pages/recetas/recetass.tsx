@@ -11,80 +11,83 @@ import RecipesManagerModal from "../../components/Recetas/RecipesManagerModal";
 
 // Tipos locales
 type Stock = Record<string, number>;
-type Ingrediente = { nombre: string; cantidad: number };
-
+type IngredienteReceta = { id: number; nombre: string; cantidad: number };
+type StockById = Record<number, number>;
 export default function Recetas() {
   const [recetas, setRecetas] = useState<Receta[]>([]);
   const [recetaSeleccionada, setRecetaSeleccionada] = useState<Receta | null>(
     null
   );
-  const [stock, setStock] = useState<Stock>({});
   const [modalOpen, setModalOpen] = useState(false);
+  const [stockById, setStockById] = useState<StockById>({});
   const [isManageOpen, setIsManageOpen] = useState(false);
-
-  // Normalizador de strings
-  const norm = (s: string) => s.trim().toLowerCase();
+  const toNumber = (v: any) => {
+  if (v == null) return 0;
+  if (typeof v === "number") return v;
+  const num = parseFloat(String(v).replace(",", ".").replace(/[^\d.]/g, ""));
+  return isNaN(num) ? 0 : num;
+};
 
   // === FETCH RECETAS ===
-  const fetchRecetas = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/recetas-con-ingredientes/`);
-      const data = response.data;
+const fetchRecetas = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/recetas-con-ingredientes/`);
+    const data = response.data;
 
-      const mapped: Receta[] = data.map((receta: any) => {
-        const tipos = receta.tipos || [];
-        const ingredientesPorTipo = {
-          maltas: [] as Ingrediente[],
-          lupulos: [] as Ingrediente[],
-          levaduras: [] as Ingrediente[],
-        };
+    const mapped: Receta[] = data.map((receta: any) => {
+      const tipos = receta.tipos || [];
+      const ingredientesPorTipo = {
+        maltas: [] as IngredienteReceta[],
+        lupulos: [] as IngredienteReceta[],
+        levaduras: [] as IngredienteReceta[],
+      };
 
-        tipos.forEach((tipo: any) => {
-          const key = (tipo.nombre_tipo || "").toLowerCase();
-          const tipoKey = key === "lúpulos" ? "lupulos" : key;
-          if (["maltas", "lupulos", "levaduras"].includes(tipoKey)) {
-            ingredientesPorTipo[tipoKey as keyof typeof ingredientesPorTipo] = (
-              tipo.ingredientes || []
-            ).map((ing: any) => ({
+      tipos.forEach((tipo: any) => {
+        const key = (tipo.nombre_tipo || "").toLowerCase();
+        const tipoKey = key === "lúpulos" ? "lupulos" : key;
+        if (["maltas", "lupulos", "levaduras"].includes(tipoKey)) {
+          ingredientesPorTipo[tipoKey as keyof typeof ingredientesPorTipo] =
+            (tipo.ingredientes || []).map((ing: any) => ({
+              id: Number(ing.id), // 👈 NECESARIO para cruzar por id
               nombre: ing.nombre_ingrediente,
-              cantidad: Number(ing.cantidad ?? 0), // 👈 fuerza número
+              cantidad: toNumber(ing.cantidad), // 👈 no fuerces Number plano
             }));
-          }
-        });
-
-        return {
-          id: receta.id,
-          nombre: receta.nombre_receta,
-          descripcion: receta.descripcion ?? "",
-          ibu: receta.ibu ?? receta.ibu_estimada ?? 0,
-          abv: receta.porcentaje_alcohol ?? 0,
-          volumen: receta.contenido_neto ?? 0,
-          estilo: receta.estilo ?? receta.nombre_receta,
-          instrucciones: receta.instrucciones ?? "",
-          ...ingredientesPorTipo,
-        };
+        }
       });
 
-      setRecetas(mapped);
-    } catch (error) {
-      console.error("Error al cargar recetas:", error);
-    }
-  };
+      return {
+        id: receta.id,
+        nombre: receta.nombre_receta,
+        descripcion: receta.descripcion ?? "",
+        ibu: receta.ibu ?? receta.ibu_estimada ?? 0,
+        abv: receta.porcentaje_alcohol ?? 0,
+        volumen: receta.contenido_neto ?? 0,
+        estilo: receta.estilo ?? receta.nombre_receta,
+        instrucciones: receta.instrucciones ?? "",
+        ...ingredientesPorTipo,
+      };
+    });
+
+    setRecetas(mapped);
+  } catch (error) {
+    console.error("Error al cargar recetas:", error);
+  }
+};
 
   // === FETCH STOCK ===
-  const fetchStock = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/ingredientes/`);
-      const ingredientes = response.data;
-      const stockMap: Stock = {};
-      ingredientes.forEach((ing: any) => {
-        stockMap[norm(ing.nombre_ingrediente)] = Number(ing.stock) || 0; // 👈 fuerza número
-      });
-      setStock(stockMap);
-    } catch (error) {
-      console.error("Error al cargar el stock:", error);
+const fetchStock = async () => {
+  try {
+    const { data } = await axios.get(`${API_URL}/ingredientes/`);
+    const byId: StockById = {};
+    for (const ing of data) {
+      byId[Number(ing.id)] = Number(ing.stock) || 0;
     }
-  };
+    setStockById(byId);
+  } catch (e) {
+    console.error("Error al cargar stock:", e);
+  }
+};
+
 
   useEffect(() => {
     fetchRecetas();
@@ -97,18 +100,17 @@ export default function Recetas() {
     setRecetaSeleccionada(receta);
   };
 
-  const puedeProducir = (): boolean => {
-    if (!recetaSeleccionada) return false;
-    const ingredientes = [
-      ...recetaSeleccionada.maltas,
-      ...recetaSeleccionada.lupulos,
-      ...recetaSeleccionada.levaduras,
-    ];
-    return ingredientes.every(
-      (item) =>
-        (Number(stock[norm(item.nombre)]) || 0) >= Number(item.cantidad || 0)
-    );
-  };
+const puedeProducir = (): boolean => {
+  if (!recetaSeleccionada) return false;
+  const ingredientes = [
+    ...recetaSeleccionada.maltas,
+    ...recetaSeleccionada.lupulos,
+    ...recetaSeleccionada.levaduras,
+  ];
+  return ingredientes.every(
+    (item) => (stockById[item.id] ?? 0) >= (item.cantidad ?? 0)
+  );
+};
 
   // === PRODUCIR RECETA ===
   const producirReceta = async () => {
@@ -176,7 +178,7 @@ export default function Recetas() {
               </p>
               <p className="text-2xl font-bold text-amber-200">
                 {Number(
-                  Object.values(stock).reduce((a, b) => a + Number(b ?? 0), 0)
+                  Object.values(stockById).reduce((a, b) => a + Number(b ?? 0), 0)
                 ).toFixed(1)}{" "}
                 kg
               </p>
@@ -267,19 +269,19 @@ export default function Recetas() {
                 <SeccionIngredientes
                   titulo="Maltas"
                   ingredientes={recetaSeleccionada.maltas}
-                  stock={stock}
+                  stock={stockById}
                   tipo="malta"
                 />
                 <SeccionIngredientes
                   titulo="Lúpulos"
                   ingredientes={recetaSeleccionada.lupulos}
-                  stock={stock}
+                  stock={stockById}
                   tipo="lupulo"
                 />
                 <SeccionIngredientes
                   titulo="Levaduras"
                   ingredientes={recetaSeleccionada.levaduras}
-                  stock={stock}
+                  stock={stockById }
                   tipo="levadura"
                 />
               </div>
